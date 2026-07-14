@@ -53,7 +53,7 @@ header.page .kicker{margin-bottom:6px}
 
 /* сегодня: столб + задачи */
 .today-grid{display:grid;grid-template-columns:78px 1fr;gap:12px;align-items:start}
-.column-wrap{display:flex;flex-direction:column;align-items:center;gap:6px}
+.column-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;position:sticky;top:12px}
 .column{display:flex;flex-direction:column-reverse;justify-content:flex-start;align-items:center;gap:3px;height:334px;width:100%;background:var(--bone);border:1px solid var(--ink12);border-radius:12px;padding:12px 0;overflow:hidden}
 .vert{flex:none;width:46px;height:10px;border-radius:4px;background:var(--vital);position:relative}
 .vert::after{content:'';position:absolute;inset:3px 15px;border-radius:2px;background:rgba(247,249,248,.35)}
@@ -65,14 +65,36 @@ header.page .kicker{margin-bottom:6px}
 @media (prefers-reduced-motion:reduce){.vert.new{animation:none}}
 .column-caption{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink45);text-align:center}
 
-.task{display:flex;align-items:center;gap:12px;width:100%;background:var(--bone);border:1px solid var(--ink12);border-radius:12px;padding:14px;font-size:15px;text-align:left;transition:border-color .15s}
-.task+.task{margin-top:8px}
+.task{display:flex;align-items:center;gap:12px;width:100%;background:var(--bone);border:1px solid var(--ink12);border-radius:12px;padding:12px 14px;font-size:15px;text-align:left;transition:border-color .15s}
+.task+.task{margin-top:7px}
 .task .ring{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid var(--ink30);display:grid;place-items:center;transition:background .15s,border-color .15s}
 .task .ring svg{display:none}
 .task.done .ring{background:var(--vital);border-color:var(--vital)}
 .task.done .ring svg{display:block}
 .task.done{border-color:color-mix(in srgb,var(--vital) 40%,transparent)}
 .task.done .t{color:var(--ink60)}
+.task .t{display:block;min-width:0}
+
+/* группы по приёмам пищи + лекарства */
+.tgroup{margin-top:16px}
+.tgroup:first-child{margin-top:0}
+.tgroup-h{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.13em;color:var(--ink45);margin:0 2px 7px}
+.task.med .ring{border-radius:8px} /* квадратная галочка = таблетка, круглая = движение */
+.course-line{display:block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ink45);margin-top:3px;letter-spacing:.02em}
+.task.lyr{cursor:default}
+.task.lyr .t{flex:1}
+.stepper{display:flex;align-items:center;gap:6px;flex:none}
+.stepper button{width:40px;height:40px;border-radius:10px;border:1px solid var(--ink12);background:var(--film);font-size:20px;line-height:1;color:var(--ink);display:grid;place-items:center;touch-action:manipulation}
+.stepper button:disabled{opacity:.28}
+.stepper output{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;width:24px;text-align:center}
+.plaque{background:var(--bone);border:1px solid var(--ink12);border-left:3px solid var(--amber);border-radius:10px;padding:9px 13px;font-size:13px;margin-bottom:8px}
+
+/* курсы лекарств (редактор дат старта) */
+.crow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--ink12)}
+.crow:last-child{border-bottom:none}
+.crow .cl{flex:1;font-size:14px;font-weight:600}
+.crow .cd{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink45);flex:none}
+.crow input[type=date]{flex:none;background:var(--film);border:1px solid var(--ink12);border-radius:8px;padding:7px 9px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink)}
 
 /* вечерний замер */
 .m-row{display:flex;align-items:center;gap:12px;margin-top:12px}
@@ -208,6 +230,7 @@ nav button.active{color:var(--ink);box-shadow:inset 0 2.5px 0 var(--vital)}
     <p id="redBody">Это периферизация. Сегодня и завтра — только прогулки, коврик пропускаем. Если не откатится за 2 дня — напиши в чат.</p>
   </div>
   <div class="coach" id="coachLine"></div>
+  <div id="medNotices"></div>
 
   <div class="today-grid">
     <div class="column-wrap">
@@ -246,6 +269,11 @@ nav button.active{color:var(--ink);box-shadow:inset 0 2.5px 0 var(--vital)}
     <div class="counts" id="miniCounts"></div>
   </div>
 
+  <div class="card section-gap" id="finishedCourses" hidden>
+    <div class="kicker" style="font-size:11px">КУРС ЗАВЕРШЁН</div>
+    <div id="finishedWrap"></div>
+  </div>
+
   <div class="footer-links">
     <button id="linkFlags">🚨 КРАСНЫЕ ФЛАГИ</button>
     <button id="linkExport">⇪ ЭКСПОРТ</button>
@@ -273,6 +301,12 @@ nav button.active{color:var(--ink);box-shadow:inset 0 2.5px 0 var(--vital)}
     <div class="seg-hint" style="margin-top:10px">↑ к пояснице — централизация, хорошо · ↓ вниз по ноге — стоп-сигнал</div>
   </div>
 
+  <div class="divider">Lyrica · 30 дней</div>
+  <div class="card">
+    <div id="lyrChart"></div>
+    <div class="seg-hint" style="margin-top:8px">таблеток за ночь · шкала 0–2</div>
+  </div>
+
   <div class="divider">Вехи</div>
   <div class="card" id="mileList"></div>
   <p class="smallprint">Каждый день с движением — один позвонок. 24 позвонка — собранный столб. Пропущенный день ничего не отнимает: столб не обнуляется.</p>
@@ -288,6 +322,10 @@ nav button.active{color:var(--ink);box-shadow:inset 0 2.5px 0 var(--vital)}
   <button class="p-add" id="addTask">+ добавить пункт</button>
   <button class="p-reset" id="resetProgram">вернуть стандартную программу</button>
   <p class="hint">Изменения действуют с сегодняшнего дня, прошлые дни не пересчитываются. Держи список коротким: отметить день должно занимать пять тапов, не больше. Когда протокол обновится в чате реабилитации — просто перепиши пункты здесь.</p>
+
+  <div class="divider">Курсы лекарств</div>
+  <div class="card" id="coursesList"></div>
+  <p class="hint">Расписание приёма назначено врачом и зашито в приложение. Здесь правится только дата старта курса — если начал препарат позже. День курса считается от этой даты; пропущенный день курс не сдвигает.</p>
 </section>
 
 <!-- ══════════ ДАННЫЕ ══════════ -->
@@ -374,6 +412,35 @@ const DEFAULT_PROGRAM=[
   {id:'mat',title:'Коврик, 7 минут'},
   {id:'breaks',title:'Разрывы сидения каждые 40 мин'}
 ];
+const CORE_IDS=['walk1','walk2','walk3','mat','breaks'];
+
+// лекарства: назначено врачом 14.07.2026, захардкожено (ТЗ v2).
+// В UI — только штуки, названия как на коробках. Никаких мг и советов.
+const DEFAULT_COURSES={
+  arcoxia:    {label:'Arcoxia',       start:PROGRAM_START,days:10},
+  bilomag:    {label:'Bilomag',       start:PROGRAM_START,days:30},
+  methycobal: {label:'Methycobal',    start:PROGRAM_START,days:20},
+  piascledine:{label:'Piascledine',   start:PROGRAM_START,days:30},
+  crestor:    {label:'Crestor',       start:PROGRAM_START,days:30},
+  lyrica:     {label:'Lyrica',        start:PROGRAM_START,days:20},
+  voltaren:   {label:'Voltaren cream',start:PROGRAM_START,days:10}
+};
+const SLOTS=[
+  {h:'🌅 ПОСЛЕ ЗАВТРАКА',walk:'walk1',meds:[
+    {id:'arcoxia_am',   c:'arcoxia',    t:'Arcoxia — 1 таблетка'},
+    {id:'bilomag_am',   c:'bilomag',    t:'Bilomag — 1 капсула'},
+    {id:'methycobal_am',c:'methycobal', t:'Methycobal — 1 таблетка'},
+    {id:'voltaren_am',  c:'voltaren',   t:'Voltaren cream — нанести на больное место'}]},
+  {h:'🌤 ПОСЛЕ ОБЕДА',walk:'walk2',meds:[
+    {id:'bilomag_pm',   c:'bilomag',    t:'Bilomag — 1 капсула'},
+    {id:'methycobal_pm',c:'methycobal', t:'Methycobal — 1 таблетка'},
+    {id:'piascledine_pm',c:'piascledine',t:'Piascledine — 1 капсула'}]},
+  {h:'🌙 ПОСЛЕ УЖИНА',walk:'walk3',meds:[
+    {id:'crestor_eve',  c:'crestor',    t:'Crestor — 1 таблетка'},
+    {id:'voltaren_eve', c:'voltaren',   t:'Voltaren cream — нанести на больное место'}]},
+  {h:'🌙 ПЕРЕД СНОМ',lyrica:true,meds:[]},
+  {h:'В ТЕЧЕНИЕ ДНЯ',ids:['mat','breaks'],extras:true,meds:[]}
+];
 
 const COACH=[
  'Мозг спрашивает «зачем». Ответ: левая стопа уже онемела. Это нерв, не лень.',
@@ -408,11 +475,16 @@ function keyPlus(key,delta){const d=new Date(key+'T12:00:00');d.setDate(d.getDat
 function dayNumber(){return Math.round((Date.parse(todayKey())-Date.parse(state.startDate))/864e5)+1}
 
 // ── состояние ──
-function freshState(){return {version:2,startDate:PROGRAM_START,program:JSON.parse(JSON.stringify(DEFAULT_PROGRAM)),days:{}}}
+function freshState(){return {version:3,startDate:PROGRAM_START,program:JSON.parse(JSON.stringify(DEFAULT_PROGRAM)),courses:JSON.parse(JSON.stringify(DEFAULT_COURSES)),days:{}}}
 function load(){
   try{const raw=localStorage.getItem(LS_KEY);
     if(raw){const s=JSON.parse(raw);
-      if(s&&s.days){if(!s.startDate)s.startDate=PROGRAM_START;if(!Array.isArray(s.program)||!s.program.length)s.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));return s}}
+      if(s&&s.days){
+        if(!s.startDate)s.startDate=PROGRAM_START;
+        if(!Array.isArray(s.program)||!s.program.length)s.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));
+        if(!s.courses)s.courses=JSON.parse(JSON.stringify(DEFAULT_COURSES));
+        for(const id of Object.keys(DEFAULT_COURSES))if(!s.courses[id])s.courses[id]=JSON.parse(JSON.stringify(DEFAULT_COURSES[id]));
+        return s}}
   }catch(e){}
   return freshState();
 }
@@ -420,8 +492,17 @@ let state=load();
 function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(state))}catch(e){}}
 
 function ensureDay(key){
-  if(!state.days[key])state.days[key]={done:[],total:state.program.length,recorded:false,painBack:null,painLeg:null,direction:null,note:''};
+  if(!state.days[key])state.days[key]={done:[],total:state.program.length,recorded:false,painBack:null,painLeg:null,direction:null,note:'',meds:{}};
+  if(!state.days[key].meds)state.days[key].meds={};
   return state.days[key];
+}
+
+// ── курсы лекарств ──
+function courseDayOf(cid,key){const c=state.courses[cid];if(!c||!c.start)return 0;return Math.round((Date.parse(key)-Date.parse(c.start))/864e5)+1}
+function courseActive(cid,key){const c=state.courses[cid];if(!c)return false;const d=courseDayOf(cid,key);return d>=1&&d<=c.days}
+function courseLine(cid,key){
+  const c=state.courses[cid];const d=courseDayOf(cid,key);const rem=c.days-d;
+  return 'День '+d+' из '+c.days+(rem>0?' · осталось '+rem:' · последний день');
 }
 function movementDays(){return Object.keys(state.days).filter(k=>state.days[k].done&&state.days[k].done.length>0).sort()}
 function isFull(rec){const t=rec.total||state.program.length;return t>0&&rec.done.length>=t}
@@ -509,17 +590,62 @@ function renderColumn(newVert){
   el('columnCaption').textContent=(count===0?0:shown.length)+'/'+SPINE+' · СТОЛБ '+(lvl+1);
 }
 
-// ── рендер: задачи ──
+// ── рендер: задачи, сгруппированные по приёмам пищи (движение + лекарства) ──
+function moveBtn(p,done){
+  return '<button class="task'+(done.includes(p.id)?' done':'')+'" data-id="'+esc(p.id)+'" aria-pressed="'+done.includes(p.id)+'">'+
+    '<span class="ring">'+CHECK+'</span><span class="t">'+esc(p.title)+'</span></button>';
+}
+function medBtn(m,meds,key){
+  const on=!!meds[m.id];
+  return '<button class="task med'+(on?' done':'')+'" data-med="'+esc(m.id)+'" aria-pressed="'+on+'">'+
+    '<span class="ring">'+CHECK+'</span><span class="t">'+esc(m.t)+
+    '<span class="course-line">'+esc(courseLine(m.c,key))+'</span></span></button>';
+}
 function renderTasks(){
-  const rec=state.days[todayKey()];
+  const key=todayKey();
+  const rec=state.days[key];
   const done=rec?rec.done:[];
-  el('taskList').innerHTML=state.program.map(p=>
-    '<button class="task'+(done.includes(p.id)?' done':'')+'" data-id="'+esc(p.id)+'" aria-pressed="'+done.includes(p.id)+'">'+
-    '<span class="ring">'+CHECK+'</span><span class="t">'+esc(p.title)+'</span></button>'
-  ).join('');
+  const meds=(rec&&rec.meds)||{};
+  const prog=id=>state.program.find(p=>p.id===id);
+  let html='';
+  for(const slot of SLOTS){
+    let rows='';
+    for(const m of slot.meds)if(courseActive(m.c,key))rows+=medBtn(m,meds,key);
+    if(slot.lyrica&&courseActive('lyrica',key)){
+      const v=Math.min(2,Math.max(0,+(meds.lyrica_night||0)));
+      rows+='<div class="task lyr"><span class="t">Lyrica'+
+        '<span class="course-line">'+esc(courseLine('lyrica',key))+'</span></span>'+
+        '<span class="stepper"><button data-ly="-1" aria-label="меньше"'+(v<=0?' disabled':'')+'>−</button>'+
+        '<output>'+v+'</output>'+
+        '<button data-ly="1" aria-label="больше"'+(v>=2?' disabled':'')+'>+</button></span></div>';
+    }
+    if(slot.walk){const p=prog(slot.walk);if(p)rows+=moveBtn(p,done);}
+    if(slot.ids)for(const id of slot.ids){const p=prog(id);if(p)rows+=moveBtn(p,done);}
+    if(slot.extras)for(const p of state.program.filter(p=>!CORE_IDS.includes(p.id)))rows+=moveBtn(p,done);
+    if(rows)html+='<div class="tgroup"><div class="tgroup-h">'+esc(slot.h)+'</div>'+rows+'</div>';
+  }
+  el('taskList').innerHTML=html;
 }
 el('taskList').addEventListener('click',e=>{
-  const btn=e.target.closest('.task');if(!btn)return;
+  // таблетка: отдельный учёт, столб НЕ трогает (ТЗ v2 §6)
+  const mbtn=e.target.closest('[data-med]');
+  if(mbtn){
+    const rec=ensureDay(todayKey());
+    rec.meds[mbtn.dataset.med]=!rec.meds[mbtn.dataset.med];
+    save();renderTasks();
+    return;
+  }
+  // степпер Lyrica: 0..2, хардкод
+  const ly=e.target.closest('[data-ly]');
+  if(ly){
+    const rec=ensureDay(todayKey());
+    const v=Math.min(2,Math.max(0,(+rec.meds.lyrica_night||0)+(+ly.dataset.ly)));
+    rec.meds.lyrica_night=v;
+    save();renderTasks();renderStats();
+    return;
+  }
+  // движение → позвонок
+  const btn=e.target.closest('.task[data-id]');if(!btn)return;
   const before=movementDays().length;
   const rec=ensureDay(todayKey());
   rec.total=state.program.length;
@@ -534,6 +660,27 @@ el('taskList').addEventListener('click',e=>{
   }
   renderTasks();renderColumn(after>before);renderMini();renderStats();
 });
+
+// ── плашки «курс заканчивается» + блок «курс завершён» ──
+function renderMedNotices(){
+  const key=todayKey();
+  let plaques='',fin='';
+  if(dayNumber()>=1){
+    for(const c of Object.values(state.courses)){
+      const d=Math.round((Date.parse(key)-Date.parse(c.start))/864e5)+1;
+      if(d>=1&&d<=c.days){
+        const rem=c.days-d;
+        if(rem===0)plaques+='<div class="plaque">'+esc(c.label)+' — сегодня последний день курса</div>';
+        else if(rem<=3)plaques+='<div class="plaque">'+esc(c.label)+' заканчивается через '+rem+' '+(rem===1?'день':'дня')+'</div>';
+      }else if(d>c.days){
+        fin+='<div class="med-row"><span>'+esc(c.label)+'</span><span class="v">'+c.days+' дн. · завершён</span></div>';
+      }
+    }
+  }
+  el('medNotices').innerHTML=plaques;
+  el('finishedWrap').innerHTML=fin;
+  el('finishedCourses').hidden=!fin;
+}
 
 // ── вечерний замер ──
 let pendingDir=null;
@@ -637,6 +784,31 @@ function renderStats(){
     return '<div class="mile'+(done?' done':'')+'"><span class="mark">'+(done?CHECK:'')+'</span>'+
       '<span class="mt">'+esc(m.t)+'</span><span class="mp mono">'+Math.min(verts,m.n)+'/'+m.n+'</span></div>';
   }).join('');
+  renderLyrChart();
+}
+// Lyrica за 30 дней — столбики 0..2 (косвенная динамика, без интерпретаций в UI)
+function renderLyrChart(){
+  const N=30,w=300,h=64;
+  let bars='',any=false;
+  for(let i=0;i<N;i++){
+    const k=keyPlus(todayKey(),i-(N-1));
+    const r=state.days[k];
+    if(r&&r.meds&&typeof r.meds.lyrica_night==='number'){
+      any=true;
+      const v=Math.min(2,Math.max(0,r.meds.lyrica_night));
+      const bw=(w/N)*0.55, x=((i+0.5)/N)*w-bw/2;
+      if(v>0){const bh=(v/2)*(h-6);
+        bars+='<rect x="'+x.toFixed(1)+'" y="'+(h-bh).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="2" fill="var(--current)"/>';
+      }else{
+        bars+='<rect x="'+x.toFixed(1)+'" y="'+(h-2)+'" width="'+bw.toFixed(1)+'" height="2" rx="1" fill="var(--ink12)"/>';
+      }
+    }
+  }
+  if(!any){el('lyrChart').innerHTML='<div class="chart-empty">Появится после первых отметок Lyrica.</div>';return;}
+  const grid=[0,.5,1].map(f=>'<line x1="0" y1="'+(h*f).toFixed(1)+'" x2="'+w+'" y2="'+(h*f).toFixed(1)+'" stroke="var(--ink12)" stroke-width="1"/>').join('')+
+    '<text x="-6" y="4" font-size="9" fill="var(--ink45)" text-anchor="end" font-family="IBM Plex Mono,monospace">2</text>'+
+    '<text x="-6" y="'+(h+3)+'" font-size="9" fill="var(--ink45)" text-anchor="end" font-family="IBM Plex Mono,monospace">0</text>';
+  el('lyrChart').innerHTML='<svg class="chart" viewBox="-14 -4 '+(w+20)+' '+(h+10)+'" xmlns="http://www.w3.org/2000/svg">'+grid+bars+'</svg>';
 }
 
 // ── медвкладка: расшифровка зашифрованного vault.json ──
@@ -733,7 +905,20 @@ function renderProgram(){
     '<div class="prow"><input value="'+esc(p.title)+'" data-id="'+esc(p.id)+'" maxlength="60">'+
     '<button class="pdel" data-id="'+esc(p.id)+'" aria-label="удалить">✕</button></div>'
   ).join('');
+  renderCourses();
 }
+function renderCourses(){
+  el('coursesList').innerHTML=Object.entries(state.courses).map(([id,c])=>
+    '<div class="crow"><span class="cl">'+esc(c.label)+'</span><span class="cd">'+c.days+' дней</span>'+
+    '<input type="date" data-course="'+esc(id)+'" value="'+esc(c.start)+'"></div>'
+  ).join('');
+}
+el('coursesList').addEventListener('change',e=>{
+  const inp=e.target.closest('input[data-course]');if(!inp)return;
+  const c=state.courses[inp.dataset.course];
+  if(c&&/^\d{4}-\d{2}-\d{2}$/.test(inp.value))c.start=inp.value;else inp.value=c.start;
+  save();renderTasks();renderMedNotices();renderStats();
+});
 function syncTodayWithProgram(){
   const rec=state.days[todayKey()];
   if(rec){
@@ -771,7 +956,7 @@ el('resetProgram').addEventListener('click',()=>{
 
 // ── экспорт ──
 async function doExport(){
-  const data={app:'Столб',exportedAt:new Date().toISOString(),startDate:state.startDate,day:dayNumber(),program:state.program,days:state.days};
+  const data={app:'Столб',exportedAt:new Date().toISOString(),startDate:state.startDate,day:dayNumber(),program:state.program,courses:state.courses,days:state.days};
   const text=JSON.stringify(data,null,1);
   const showFallback=()=>{const ta=el('exportFallback');ta.hidden=false;ta.value=text;ta.focus();ta.select();toast('Скопируй из поля вручную')};
   try{
@@ -804,7 +989,7 @@ function renderAll(resetMeasure=true){
     const today=state.days[todayKey()];
     el('recordBtn').textContent=(today&&today.recorded)?'Обновить запись':'Записать день';
   }
-  renderMini();renderStats();renderProgram();
+  renderMedNotices();renderMini();renderStats();renderProgram();
 }
 // возврат фокуса: перечитать хранилище (вторая вкладка могла писать) и поймать смену суток
 document.addEventListener('visibilitychange',()=>{
