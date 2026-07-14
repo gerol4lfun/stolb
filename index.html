@@ -188,6 +188,19 @@ details.cat[open]>summary .chev{transform:rotate(90deg)}
 .dot-g{background:var(--vital)} .dot-w{background:var(--amber)} .dot-r{background:var(--pain)}
 .prestart{background:var(--bone);border:1px solid var(--ink12);border-left:3px solid var(--current);border-radius:12px;padding:12px 14px;font-size:14px;margin-bottom:14px}
 
+/* демо-режим */
+.demobar{background:var(--current);color:#fff;border-radius:14px;padding:12px 14px;margin-bottom:16px}
+.demobar .dhead{display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.12em}
+.demobar .dhead b{font-weight:600}
+.demobar .dexit{margin-left:auto;color:#fff;opacity:.85;text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-size:11px}
+.demobar .dsub{font-size:12.5px;opacity:.9;margin:7px 0 10px;line-height:1.45}
+.demobar .dctl{display:flex;align-items:center;gap:8px}
+.demobar .dctl button{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:9px;padding:9px 12px;font-size:14px;font-weight:600;touch-action:manipulation}
+.demobar .dctl button:disabled{opacity:.4}
+.demobar .dctl .dday{flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:13px}
+.demobar .dreset{background:transparent;border:none;color:#fff;opacity:.85;text-decoration:underline;text-underline-offset:3px;font-size:12px;padding:8px 0 0;cursor:pointer}
+.demo-enter{display:block;width:100%;margin-top:26px;border:1.5px dashed var(--ink30);border-radius:10px;padding:12px;color:var(--ink60);font-size:13px;text-align:center;text-decoration:none;font-family:'IBM Plex Mono',monospace;letter-spacing:.03em}
+
 /* замок / разблокировка */
 .lock-card{background:var(--bone);border:1px solid var(--ink12);border-radius:14px;padding:22px 18px;text-align:center}
 .lock-ico{width:48px;height:48px;margin:0 auto 12px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--current) 12%,var(--bone));color:var(--current)}
@@ -219,6 +232,17 @@ nav button.active{color:var(--ink);box-shadow:inset 0 2.5px 0 var(--vital)}
 
 <!-- ══════════ СЕГОДНЯ ══════════ -->
 <section id="tab-today">
+  <div class="demobar" id="demoBar" hidden>
+    <div class="dhead"><b>⚙ ДЕМО-РЕЖИМ</b><span class="dexit" id="demoExit">выйти →</span></div>
+    <div class="dsub">Песочница: тыкай что хочешь, реальный трекер не тронется. Листай дни вперёд — посмотри, как растёт столб, тают курсы, появляются плашки. Настоящая работа начнётся 15.07 по обычной ссылке, с чистого листа.</div>
+    <div class="dctl">
+      <button id="demoPrev" aria-label="назад">←</button>
+      <span class="dday" id="demoDay">День 1</span>
+      <button id="demoNext" aria-label="вперёд">день →</button>
+    </div>
+    <button class="dreset" id="demoReset">сбросить демо начисто</button>
+  </div>
+
   <header class="page">
     <div class="kicker" id="dayCounter">ДЕНЬ 1 / 180</div>
     <h1>Сегодня</h1>
@@ -326,6 +350,8 @@ nav button.active{color:var(--ink);box-shadow:inset 0 2.5px 0 var(--vital)}
   <div class="divider">Курсы лекарств</div>
   <div class="card" id="coursesList"></div>
   <p class="hint">Расписание приёма назначено врачом и зашито в приложение. Здесь правится только дата старта курса — если начал препарат позже. День курса считается от этой даты; пропущенный день курс не сдвигает.</p>
+
+  <a class="demo-enter" id="demoEnter" href="?demo">⚙ открыть демо-режим — потыкать в песочнице</a>
 </section>
 
 <!-- ══════════ ДАННЫЕ ══════════ -->
@@ -397,10 +423,13 @@ nav button.active{color:var(--ink);box-shadow:inset 0 2.5px 0 var(--vital)}
 
 <script>
 'use strict';
-const LS_KEY='stolb-v1';
+// демо-режим: ?demo в адресе → отдельная песочница, реальные данные не трогаются
+const DEMO=/(?:[?&#])demo\b/.test(location.search+location.hash);
+const LS_KEY=DEMO?'stolb-demo':'stolb-v1';
 const PROGRAM_START='2026-07-15'; // старт программы — с завтрашнего дня
 const HORIZON=180;
 const SPINE=24; // позвонков в столбе
+let demoDay=1; // в демо «сегодня» = этот день программы; листается кнопками
 
 // медданные и анализы приходят из зашифрованного vault.json после ввода пароля
 let VAULT=null;   // сюда ляжет расшифрованное { spine, labs, analyses, pdfs }
@@ -468,9 +497,9 @@ const MILESTONES=[
 ];
 
 // ── время: сутки считаем с 04:00, ложится он поздно ──
-function logicalNow(){return new Date(Date.now()-4*3600*1000)}
 function fmtKey(d){const p=n=>('0'+n).slice(-2);return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())}
-function todayKey(){return fmtKey(logicalNow())}
+function todayKey(){return DEMO?keyPlus(PROGRAM_START,demoDay-1):fmtKey(new Date(Date.now()-4*3600*1000))}
+function logicalNow(){return DEMO?new Date(todayKey()+'T12:00:00'):new Date(Date.now()-4*3600*1000)}
 function keyPlus(key,delta){const d=new Date(key+'T12:00:00');d.setDate(d.getDate()+delta);return fmtKey(d)}
 function dayNumber(){return Math.round((Date.parse(todayKey())-Date.parse(state.startDate))/864e5)+1}
 
@@ -990,7 +1019,28 @@ function renderAll(resetMeasure=true){
     el('recordBtn').textContent=(today&&today.recorded)?'Обновить запись':'Записать день';
   }
   renderMedNotices();renderMini();renderStats();renderProgram();
+  renderDemoBar();
 }
+
+// ── демо-режим: баннер и листание виртуальных дней ──
+function renderDemoBar(){
+  if(!DEMO){el('demoBar').hidden=true;el('demoEnter').hidden=false;return;}
+  el('demoEnter').hidden=true;
+  el('demoBar').hidden=false;
+  el('demoDay').textContent='День '+demoDay+' / '+HORIZON;
+  el('demoPrev').disabled=demoDay<=1;
+  el('demoNext').disabled=demoDay>=HORIZON;
+}
+if(DEMO){
+  el('demoPrev').addEventListener('click',()=>{if(demoDay>1){demoDay--;renderAll();}});
+  el('demoNext').addEventListener('click',()=>{if(demoDay<HORIZON){demoDay++;renderAll();}});
+  el('demoExit').addEventListener('click',()=>{location.href=location.pathname;});
+  el('demoReset').addEventListener('click',()=>{
+    if(!confirm('Стереть все демо-данные и начать песочницу заново?'))return;
+    localStorage.removeItem('stolb-demo');state=load();demoDay=1;renderAll();
+  });
+}
+
 // возврат фокуса: перечитать хранилище (вторая вкладка могла писать) и поймать смену суток
 document.addEventListener('visibilitychange',()=>{
   if(!document.hidden){state=load();renderAll();}
