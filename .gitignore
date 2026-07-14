@@ -1,0 +1,9 @@
+# НИКОГДА не публиковать: исходные медданные в открытом виде
+plaintext/
+analyses/
+
+# служебное
+.DS_Store
+node_modules/
+
+# на сайт уходят только: index.html, vault.json (зашифрован), robots.txt, иконка, README, tools/

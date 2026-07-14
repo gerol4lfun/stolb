@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive, noimageindex">
+<meta name="theme-color" content="#DCE3E1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Столб">
+<title>Столб — трекер спины</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='6' y='3' width='20' height='7' rx='3' fill='%230E8F7E'/%3E%3Crect x='6' y='12' width='20' height='7' rx='3' fill='%230E8F7E'/%3E%3Crect x='6' y='21' width='20' height='7' rx='3' fill='%230E8F7E' opacity='.4'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --film:#DCE3E1;   /* фон — рентген-плёнка */
+  --ink:#10262C;    /* петролевый текст */
+  --bone:#F7F9F8;   /* поверхность карточек */
+  --vital:#0E8F7E;  /* сделано / позвонки / норма */
+  --current:#7A5CFF;/* симптом в ноге */
+  --pain:#B93A2B;   /* боль / светофор / находка */
+  --amber:#B07D2B;  /* обратить внимание */
+  --ink60:color-mix(in srgb,var(--ink) 60%,transparent);
+  --ink45:color-mix(in srgb,var(--ink) 45%,transparent);
+  --ink30:color-mix(in srgb,var(--ink) 30%,transparent);
+  --ink12:color-mix(in srgb,var(--ink) 12%,transparent);
+}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--film);color:var(--ink);font-family:'IBM Plex Sans',system-ui,-apple-system,sans-serif;line-height:1.45;-webkit-tap-highlight-color:transparent}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,monospace}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;touch-action:manipulation}
+main{max-width:520px;margin:0 auto;padding:20px 16px calc(84px + env(safe-area-inset-bottom))}
+h1{font-size:30px;font-weight:700;letter-spacing:-.01em;line-height:1.1}
+h2{font-size:22px;font-weight:700;letter-spacing:-.01em}
+.kicker{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;color:var(--ink60);text-transform:uppercase}
+.datemono{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink45);margin-top:4px}
+header.page{margin-bottom:14px}
+header.page .kicker{margin-bottom:6px}
+
+.card{background:var(--bone);border:1px solid var(--ink12);border-radius:14px;padding:14px 16px}
+.divider{display:flex;align-items:center;gap:10px;margin:24px 0 12px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;color:var(--ink45)}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--ink12)}
+
+/* коуч-строка */
+.coach{background:var(--bone);border:1px solid var(--ink12);border-left:3px solid var(--vital);border-radius:12px;padding:12px 14px;font-size:14px;color:var(--ink);margin-bottom:14px}
+/* красный светофор */
+.red-block{background:color-mix(in srgb,var(--pain) 7%,var(--bone));border:1px solid color-mix(in srgb,var(--pain) 30%,transparent);border-left:3px solid var(--pain);border-radius:12px;padding:14px;margin-bottom:14px}
+.red-block b{display:block;margin-bottom:4px;color:var(--pain)}
+.red-block p{font-size:14px}
+
+/* сегодня: столб + задачи */
+.today-grid{display:grid;grid-template-columns:78px 1fr;gap:12px;align-items:start}
+.column-wrap{display:flex;flex-direction:column;align-items:center;gap:6px}
+.column{display:flex;flex-direction:column-reverse;justify-content:flex-start;align-items:center;gap:3px;height:334px;width:100%;background:var(--bone);border:1px solid var(--ink12);border-radius:12px;padding:12px 0;overflow:hidden}
+.vert{flex:none;width:46px;height:10px;border-radius:4px;background:var(--vital);position:relative}
+.vert::after{content:'';position:absolute;inset:3px 15px;border-radius:2px;background:rgba(247,249,248,.35)}
+.vert.part{opacity:.35}
+.vert.ghost{background:transparent;border:1.5px dashed var(--ink30)}
+.vert.ghost::after{display:none}
+.vert.new{animation:pop .3s ease-out}
+@keyframes pop{0%{transform:scale(1.22);box-shadow:0 0 0 7px color-mix(in srgb,var(--vital) 30%,transparent)}100%{transform:scale(1);box-shadow:0 0 0 0 transparent}}
+@media (prefers-reduced-motion:reduce){.vert.new{animation:none}}
+.column-caption{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink45);text-align:center}
+
+.task{display:flex;align-items:center;gap:12px;width:100%;background:var(--bone);border:1px solid var(--ink12);border-radius:12px;padding:14px;font-size:15px;text-align:left;transition:border-color .15s}
+.task+.task{margin-top:8px}
+.task .ring{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid var(--ink30);display:grid;place-items:center;transition:background .15s,border-color .15s}
+.task .ring svg{display:none}
+.task.done .ring{background:var(--vital);border-color:var(--vital)}
+.task.done .ring svg{display:block}
+.task.done{border-color:color-mix(in srgb,var(--vital) 40%,transparent)}
+.task.done .t{color:var(--ink60)}
+
+/* вечерний замер */
+.m-row{display:flex;align-items:center;gap:12px;margin-top:12px}
+.m-row label{width:78px;font-size:14px;flex:none}
+.m-row output{width:34px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;flex:none}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:32px;background:transparent;min-width:0}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--ink) 14%,var(--film)),var(--pain))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--bone);border:2.5px solid var(--ink);margin-top:-10px;box-shadow:0 1px 4px rgba(16,38,44,.25)}
+input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--ink) 14%,var(--film)),var(--pain))}
+input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:var(--bone);border:2.5px solid var(--ink)}
+.seg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
+.seg button{background:var(--bone);border:1px solid var(--ink12);border-radius:10px;padding:11px 4px;font-size:14px}
+.seg button.sel-up{background:var(--vital);border-color:var(--vital);color:#fff}
+.seg button.sel-same{background:var(--ink);border-color:var(--ink);color:var(--bone)}
+.seg button.sel-down{background:var(--pain);border-color:var(--pain);color:#fff}
+.seg-hint{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink45);margin-top:8px}
+#noteInput{width:100%;margin-top:12px;background:var(--bone);border:1px solid var(--ink12);border-radius:10px;padding:12px 14px;font:inherit;font-size:16px;color:var(--ink)}
+#noteInput::placeholder{color:var(--ink30)}
+.record-btn{display:block;width:100%;margin-top:14px;background:var(--ink);color:var(--bone);border-radius:12px;padding:16px;font-size:16px;font-weight:600}
+.record-btn:active{opacity:.85}
+
+/* мини-динамика и графики */
+.chart-empty{font-size:13px;color:var(--ink45);padding:8px 0}
+.counts{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink60);margin-top:10px}
+.legend{display:flex;gap:14px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink60);margin-bottom:8px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+svg.chart{width:100%;height:auto;display:block;overflow:visible}
+
+.footer-links{display:flex;justify-content:center;gap:22px;margin-top:26px}
+.footer-links button{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.08em;color:var(--ink60);text-decoration:underline;text-underline-offset:3px}
+
+/* дашборд */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat{background:var(--bone);border:1px solid var(--ink12);border-radius:14px;padding:13px 14px}
+.stat .n{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;line-height:1.1}
+.stat .l{font-size:12px;color:var(--ink60);margin-top:3px}
+.dir-strip{display:flex;gap:4px;flex-wrap:wrap}
+.dir-cell{width:28px;height:28px;border-radius:7px;display:grid;place-items:center;font-family:'IBM Plex Mono',monospace;font-size:13px;background:color-mix(in srgb,var(--ink) 5%,var(--bone));color:var(--ink30);border:1px solid var(--ink12)}
+.dir-cell.up{background:color-mix(in srgb,var(--vital) 15%,var(--bone));color:var(--vital);border-color:color-mix(in srgb,var(--vital) 35%,transparent)}
+.dir-cell.same{color:var(--ink60)}
+.dir-cell.down{background:color-mix(in srgb,var(--pain) 12%,var(--bone));color:var(--pain);border-color:color-mix(in srgb,var(--pain) 35%,transparent)}
+.mile{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--ink12)}
+.mile:last-child{border-bottom:none}
+.mile .mark{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid var(--ink30);display:grid;place-items:center;font-size:13px;color:#fff}
+.mile.done .mark{background:var(--vital);border-color:var(--vital)}
+.mile .mt{flex:1;font-size:14px}
+.mile.done .mt{color:var(--ink60)}
+.mile .mp{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink45)}
+
+/* программа */
+.prow{display:flex;gap:8px;margin-top:8px}
+.prow input{flex:1;min-width:0;background:var(--bone);border:1px solid var(--ink12);border-radius:10px;padding:12px 14px;font:inherit;font-size:16px;color:var(--ink)}
+.prow .pdel{flex:none;width:46px;border:1px solid var(--ink12);border-radius:10px;background:var(--bone);color:var(--ink45);font-size:16px}
+.p-add{display:block;width:100%;margin-top:10px;border:1.5px dashed var(--ink30);border-radius:10px;padding:12px;color:var(--ink60);font-size:14px}
+.p-reset{margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink45);text-decoration:underline;text-underline-offset:3px}
+.hint{font-size:13px;color:var(--ink60);margin-top:14px}
+
+/* данные */
+.med-row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--ink12);font-size:14px}
+.med-row:last-child{border-bottom:none}
+.med-row .v{font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:right;color:var(--ink);flex:none}
+.med-row .v.warn{color:var(--pain)}
+.med-row.sub span:first-child{color:var(--ink60);font-size:13px}
+.tag-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.tag{font-size:13px;padding:6px 12px;border-radius:99px;background:color-mix(in srgb,var(--vital) 10%,var(--bone));border:1px solid color-mix(in srgb,var(--vital) 30%,transparent);color:var(--ink)}
+.tag.no{background:color-mix(in srgb,var(--pain) 8%,var(--bone));border-color:color-mix(in srgb,var(--pain) 25%,transparent)}
+.redflags{background:color-mix(in srgb,var(--pain) 7%,var(--bone));border:1px solid color-mix(in srgb,var(--pain) 30%,transparent);border-radius:14px;padding:16px}
+.redflags h3{color:var(--pain);font-size:16px;margin-bottom:8px}
+.redflags li{margin:7px 0 7px 18px;font-size:14px}
+.redflags p{font-size:13px;color:var(--ink60);margin-top:10px}
+.section-gap{margin-top:14px}
+
+/* анализы — аккордеон по категориям */
+.an-intro{font-size:13px;color:var(--ink60);margin:2px 2px 4px}
+.an-legend{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink60);margin:0 2px 6px}
+.an-legend b{font-weight:400;color:var(--ink)}
+details.cat{background:var(--bone);border:1px solid var(--ink12);border-radius:14px;margin-top:10px;overflow:hidden}
+details.cat>summary{list-style:none;cursor:pointer;padding:15px 16px;display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px}
+details.cat>summary::-webkit-details-marker{display:none}
+.sdot{flex:none;width:9px;height:9px;border-radius:50%}
+summary .scount{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink45)}
+summary .chev{flex:none;color:var(--ink45);transition:transform .2s}
+details.cat[open]>summary .chev{transform:rotate(90deg)}
+.an{padding:13px 16px;border-top:1px solid var(--ink12)}
+.an-head{display:flex;gap:9px;align-items:flex-start}
+.an-dot{flex:none;width:9px;height:9px;border-radius:50%;margin-top:5px}
+.an-title{font-weight:600;font-size:14px;flex:1;line-height:1.35}
+.an-note{font-size:13px;color:var(--ink60);margin-top:5px;line-height:1.5}
+.an-open{display:inline-block;margin-top:9px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.05em;color:var(--vital);text-decoration:none;border:1px solid color-mix(in srgb,var(--vital) 35%,transparent);border-radius:8px;padding:5px 11px}
+.an-open:active{background:color-mix(in srgb,var(--vital) 10%,transparent)}
+.dot-g{background:var(--vital)} .dot-w{background:var(--amber)} .dot-r{background:var(--pain)}
+.prestart{background:var(--bone);border:1px solid var(--ink12);border-left:3px solid var(--current);border-radius:12px;padding:12px 14px;font-size:14px;margin-bottom:14px}
+
+/* замок / разблокировка */
+.lock-card{background:var(--bone);border:1px solid var(--ink12);border-radius:14px;padding:22px 18px;text-align:center}
+.lock-ico{width:48px;height:48px;margin:0 auto 12px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--current) 12%,var(--bone));color:var(--current)}
+.lock-title{font-weight:700;font-size:16px}
+.lock-sub{font-size:13px;color:var(--ink60);margin:8px auto 16px;max-width:34ch;line-height:1.5}
+#passInput{width:100%;background:var(--film);border:1px solid var(--ink12);border-radius:10px;padding:14px 16px;font:inherit;font-size:16px;color:var(--ink);text-align:center;letter-spacing:.02em}
+#passInput:focus{outline:none;border-color:var(--current)}
+.lock-err{color:var(--pain);font-size:13px;margin-top:10px}
+.lock-busy{color:var(--ink60);font-size:13px;margin-top:10px;font-family:'IBM Plex Mono',monospace}
+.vault-bar{display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;color:var(--ink45);margin-bottom:4px}
+.vault-bar .relock{margin-left:auto;color:var(--ink60);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.vault-bar .vdot{width:7px;height:7px;border-radius:50%;background:var(--vital)}
+
+#exportFallback{width:100%;height:140px;margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--ink12);border-radius:10px;padding:10px;background:var(--bone);color:var(--ink)}
+.smallprint{font-size:12px;color:var(--ink45);margin-top:14px}
+
+/* навигация */
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:color-mix(in srgb,var(--bone) 92%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--ink12);padding-bottom:env(safe-area-inset-bottom);z-index:10}
+nav button{flex:1;padding:14px 0 12px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink45)}
+nav button.active{color:var(--ink);box-shadow:inset 0 2.5px 0 var(--vital)}
+
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(72px + env(safe-area-inset-bottom));background:var(--ink);color:var(--bone);font-family:'IBM Plex Mono',monospace;font-size:13px;padding:10px 18px;border-radius:99px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:20;max-width:88%;text-align:center}
+#toast.show{opacity:1}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+
+<!-- ══════════ СЕГОДНЯ ══════════ -->
+<section id="tab-today">
+  <header class="page">
+    <div class="kicker" id="dayCounter">ДЕНЬ 1 / 180</div>
+    <h1>Сегодня</h1>
+    <div class="datemono" id="todayDate"></div>
+  </header>
+
+  <div class="red-block" id="redBlock" role="status" hidden>
+    <b id="redTitle">Боль сместилась вниз по ноге.</b>
+    <p id="redBody">Это периферизация. Сегодня и завтра — только прогулки, коврик пропускаем. Если не откатится за 2 дня — напиши в чат.</p>
+  </div>
+  <div class="coach" id="coachLine"></div>
+
+  <div class="today-grid">
+    <div class="column-wrap">
+      <div class="column" id="column"></div>
+      <div class="column-caption" id="columnCaption">СТОЛБ</div>
+    </div>
+    <div id="taskList"></div>
+  </div>
+
+  <div class="divider">Вечерний замер</div>
+  <div class="card">
+    <div class="m-row">
+      <label for="painBack">Поясница</label>
+      <input type="range" id="painBack" min="0" max="10" step="1" value="5">
+      <output id="painBackOut">5</output>
+    </div>
+    <div class="m-row">
+      <label for="painLeg">Нога</label>
+      <input type="range" id="painLeg" min="0" max="10" step="1" value="3">
+      <output id="painLegOut">3</output>
+    </div>
+    <div class="seg" id="dirSeg">
+      <button data-dir="up">↑ выше</button>
+      <button data-dir="same">= так же</button>
+      <button data-dir="down">↓ ниже</button>
+    </div>
+    <div class="seg-hint">выше = к пояснице (хорошо) · ниже = в голень/стопу</div>
+    <input type="text" id="noteInput" placeholder="заметка, одна строка — необязательно" maxlength="140">
+    <button class="record-btn" id="recordBtn">Записать день</button>
+  </div>
+
+  <div class="divider">Динамика</div>
+  <div class="card">
+    <div class="legend"><span><i style="background:var(--ink)"></i>поясница</span><span><i style="background:var(--current)"></i>нога</span></div>
+    <div id="miniChart"></div>
+    <div class="counts" id="miniCounts"></div>
+  </div>
+
+  <div class="footer-links">
+    <button id="linkFlags">🚨 КРАСНЫЕ ФЛАГИ</button>
+    <button id="linkExport">⇪ ЭКСПОРТ</button>
+  </div>
+</section>
+
+<!-- ══════════ ДИНАМИКА ══════════ -->
+<section id="tab-stats" hidden>
+  <header class="page">
+    <div class="kicker" id="dayCounter2"></div>
+    <h1>Динамика</h1>
+  </header>
+
+  <div class="stat-grid" id="statGrid"></div>
+
+  <div class="divider">Боль · 30 дней</div>
+  <div class="card">
+    <div class="legend"><span><i style="background:var(--ink)"></i>поясница</span><span><i style="background:var(--current)"></i>нога</span></div>
+    <div id="bigChart"></div>
+  </div>
+
+  <div class="divider">Направление боли · 14 дней</div>
+  <div class="card">
+    <div class="dir-strip" id="dirStrip"></div>
+    <div class="seg-hint" style="margin-top:10px">↑ к пояснице — централизация, хорошо · ↓ вниз по ноге — стоп-сигнал</div>
+  </div>
+
+  <div class="divider">Вехи</div>
+  <div class="card" id="mileList"></div>
+  <p class="smallprint">Каждый день с движением — один позвонок. 24 позвонка — собранный столб. Пропущенный день ничего не отнимает: столб не обнуляется.</p>
+</section>
+
+<!-- ══════════ ПРОГРАММА ══════════ -->
+<section id="tab-program" hidden>
+  <header class="page">
+    <div class="kicker">РЕДАКТИРУЕТСЯ</div>
+    <h1>Программа</h1>
+  </header>
+  <div id="programList"></div>
+  <button class="p-add" id="addTask">+ добавить пункт</button>
+  <button class="p-reset" id="resetProgram">вернуть стандартную программу</button>
+  <p class="hint">Изменения действуют с сегодняшнего дня, прошлые дни не пересчитываются. Держи список коротким: отметить день должно занимать пять тапов, не больше. Когда протокол обновится в чате реабилитации — просто перепиши пункты здесь.</p>
+</section>
+
+<!-- ══════════ ДАННЫЕ ══════════ -->
+<section id="tab-data" hidden>
+  <header class="page">
+    <div class="kicker">ТОЧКА СТАРТА · 14.07.2026</div>
+    <h1>Данные</h1>
+  </header>
+
+  <!-- замок: медданные и анализы зашифрованы, открываются паролем -->
+  <div class="lock-card" id="lockCard">
+    <div class="lock-ico" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="4" y="10.5" width="16" height="10.5" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M7.5 10.5V7.5a4.5 4.5 0 0 1 9 0v3" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="15.5" r="1.6" fill="currentColor"/></svg>
+    </div>
+    <div class="lock-title">Обследование и анализы под паролем</div>
+    <p class="lock-sub">Здесь МРТ, лаборатория и 28 PDF из чек-апа. На сервере они лежат зашифрованными — без пароля не читаются. Введи пароль, чтобы открыть.</p>
+    <form id="lockForm" autocomplete="off">
+      <input type="password" id="passInput" placeholder="пароль" autocomplete="current-password" enterkeyhint="go">
+      <button type="submit" class="record-btn" id="unlockBtn" style="margin-top:10px">Открыть</button>
+    </form>
+    <div class="lock-err" id="lockErr" hidden></div>
+  </div>
+
+  <div id="vaultContent" hidden></div>
+
+  <div class="card section-gap">
+    <div class="kicker" style="font-size:11px">ОРТОПЕД РАЗРЕШИЛ</div>
+    <div class="tag-list">
+      <span class="tag">плавание</span><span class="tag">велосипед</span><span class="tag">вис на перекладине</span><span class="tag">тёплый компресс</span><span class="tag">массаж</span><span class="tag">физиотерапия</span>
+    </div>
+    <div class="kicker" style="font-size:11px;margin-top:14px">ОГРАНИЧИТЬ</div>
+    <div class="tag-list">
+      <span class="tag no">наклоны вперёд</span><span class="tag no">подъём тяжестей</span><span class="tag no">долгое стояние</span><span class="tag no">долгая ходьба без перерыва</span>
+    </div>
+  </div>
+
+  <div class="redflags section-gap" id="redflags">
+    <h3>🚨 Красные флаги — немедленно в больницу</h3>
+    <ul>
+      <li>Онемение в паху, промежности, на внутренней стороне бёдер</li>
+      <li>Не можешь помочиться, не чувствуешь позыв, недержание мочи</li>
+      <li>Потеря контроля над стулом</li>
+      <li>Быстро нарастающая слабость в обеих ногах</li>
+    </ul>
+    <p>Это синдром конского хвоста, счёт идёт на часы — не жди утра. На 14.07.2026 ничего из этого нет.</p>
+  </div>
+
+  <div class="card section-gap">
+    <div class="kicker" style="font-size:11px">ЭКСПОРТ</div>
+    <p style="font-size:14px;margin-top:8px">Скопируй данные и вставь в чат реабилитации — посмотрим динамику и обновим программу.</p>
+    <button class="record-btn" id="exportBtn" style="margin-top:12px">Экспорт данных в буфер</button>
+    <textarea id="exportFallback" readonly hidden></textarea>
+  </div>
+
+  <p class="smallprint">Данные живут только в этом браузере (localStorage) — сервера нет. Перед сменой телефона или браузера сделай экспорт. Это трекер поведения, не медкарта и не замена врача.</p>
+</section>
+
+</main>
+
+<nav id="nav">
+  <button data-tab="today" class="active">СЕГОДНЯ</button>
+  <button data-tab="stats">ДИНАМИКА</button>
+  <button data-tab="program">ПРОГРАММА</button>
+  <button data-tab="data">ДАННЫЕ</button>
+</nav>
+
+<div id="toast" role="status"></div>
+<noscript><p style="padding:20px">Нужен включённый JavaScript.</p></noscript>
+
+<script>
+'use strict';
+const LS_KEY='stolb-v1';
+const PROGRAM_START='2026-07-15'; // старт программы — с завтрашнего дня
+const HORIZON=180;
+const SPINE=24; // позвонков в столбе
+
+// медданные и анализы приходят из зашифрованного vault.json после ввода пароля
+let VAULT=null;   // сюда ляжет расшифрованное { spine, labs, analyses, pdfs }
+
+const DEFAULT_PROGRAM=[
+  {id:'walk1',title:'Прогулка после завтрака'},
+  {id:'walk2',title:'Прогулка после обеда'},
+  {id:'walk3',title:'Прогулка после ужина'},
+  {id:'mat',title:'Коврик, 7 минут'},
+  {id:'breaks',title:'Разрывы сидения каждые 40 мин'}
+];
+
+const COACH=[
+ 'Мозг спрашивает «зачем». Ответ: левая стопа уже онемела. Это нерв, не лень.',
+ 'Триггер — еда. Поел → встал → пошёл. Не сила воли, а сцепка.',
+ 'Привычка формируется в среднем 66 дней. Ты на дне {N}. Это нормально, что пока тяжело.',
+ 'Разгибание уводит боль в ногу. Прогибов нет. Никаких.',
+ 'Ротация под нагрузкой — главный враг. Поворачивайся всем телом.',
+ 'Боль ушла из ноги в поясницу? Это хорошо. Даже если поясница болит сильнее.',
+ 'Ты бегал 10 км. Спина не болела. Ты уже знаешь, что это работает.',
+ 'Прегабалин глушит боль. Первые 3 недели прогрессируем по календарю, не по ощущениям.',
+ 'Пропустил день — ничего не сломалось. Столб на месте. Просто продолжи.',
+ 'WalkBack, Lancet 2024: ходьба 30 мин × 5 дней почти вдвое отодвигает рецидивы.',
+ 'BMJ 2024, 218 исследований: ходьба лечит депрессию не хуже, чем таблетка.',
+ 'Мышцы забились — это не повреждение. Ток в ногу — это повреждение. Разница есть.',
+ 'Не можешь сидеть 40 секунд — это не слабость воли. Тело ищет разгрузку.',
+ 'Цель — не «перестало болеть». Цель — десятка.'
+];
+
+const MILESTONES=[
+ {n:7,  t:'Первая неделя движения'},
+ {n:24, t:'Полный столб — 24 позвонка, как в позвоночнике'},
+ {n:66, t:'66 дней — средний срок формирования привычки'},
+ {n:90, t:'Три месяца движения — рубеж контрольных анализов'},
+ {n:144,t:'Шесть собранных столбов'}
+];
+
+// ── время: сутки считаем с 04:00, ложится он поздно ──
+function logicalNow(){return new Date(Date.now()-4*3600*1000)}
+function fmtKey(d){const p=n=>('0'+n).slice(-2);return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())}
+function todayKey(){return fmtKey(logicalNow())}
+function keyPlus(key,delta){const d=new Date(key+'T12:00:00');d.setDate(d.getDate()+delta);return fmtKey(d)}
+function dayNumber(){return Math.round((Date.parse(todayKey())-Date.parse(state.startDate))/864e5)+1}
+
+// ── состояние ──
+function freshState(){return {version:2,startDate:PROGRAM_START,program:JSON.parse(JSON.stringify(DEFAULT_PROGRAM)),days:{}}}
+function load(){
+  try{const raw=localStorage.getItem(LS_KEY);
+    if(raw){const s=JSON.parse(raw);
+      if(s&&s.days){if(!s.startDate)s.startDate=PROGRAM_START;if(!Array.isArray(s.program)||!s.program.length)s.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));return s}}
+  }catch(e){}
+  return freshState();
+}
+let state=load();
+function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(state))}catch(e){}}
+
+function ensureDay(key){
+  if(!state.days[key])state.days[key]={done:[],total:state.program.length,recorded:false,painBack:null,painLeg:null,direction:null,note:''};
+  return state.days[key];
+}
+function movementDays(){return Object.keys(state.days).filter(k=>state.days[k].done&&state.days[k].done.length>0).sort()}
+function isFull(rec){const t=rec.total||state.program.length;return t>0&&rec.done.length>=t}
+function prevRecorded(key,n){
+  return Object.keys(state.days).filter(k=>k<key&&state.days[k].recorded&&typeof state.days[k].painLeg==='number').sort().slice(-n).map(k=>state.days[k]);
+}
+
+// ── красный светофор ──
+function redFlagFor(key){
+  const d=state.days[key];
+  if(!d||!d.recorded)return null;
+  if(d.direction==='down')return 'periph';
+  const prior=prevRecorded(key,7);
+  if(prior.length>=3){
+    const avg=prior.reduce((s,x)=>s+x.painLeg,0)/prior.length;
+    if(d.painLeg-avg>=3)return 'spike';
+  }
+  return null;
+}
+function redActive(){return redFlagFor(todayKey())||redFlagFor(keyPlus(todayKey(),-1))}
+
+// ── DOM helpers ──
+const el=id=>document.getElementById(id);
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+let toastTimer=null;
+function toast(msg){const t=el('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200)}
+
+const CHECK='<svg width="12" height="10" viewBox="0 0 12 10"><path d="M1 5.2 4.4 8.6 11 1.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+// ── рендер: шапка ──
+const WD=['ВС','ПН','ВТ','СР','ЧТ','ПТ','СБ'];
+function renderHeader(){
+  const n=dayNumber();
+  const label=n<1?'СТАРТ 15.07.2026':('ДЕНЬ '+n+' / '+HORIZON);
+  el('dayCounter').textContent=label;
+  el('dayCounter2').textContent=label;
+  const d=logicalNow();
+  el('todayDate').textContent=WD[d.getDay()]+' · '+('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+d.getFullYear();
+}
+
+// ── рендер: коуч / светофор ──
+function renderCoach(){
+  if(dayNumber()<1){
+    el('redBlock').hidden=true;
+    el('coachLine').hidden=false;
+    el('coachLine').className='prestart';
+    el('coachLine').textContent='Старт завтра, 15 июля. Сегодня можно осмотреться: во вкладке «Данные» — разбор всех анализов простым языком. Отмечать пункты начнёшь с утра.';
+    return;
+  }
+  el('coachLine').className='coach';
+  const flag=redActive();
+  if(flag){
+    el('coachLine').hidden=true;
+    el('redBlock').hidden=false;
+    if(flag==='spike'){
+      el('redTitle').textContent='Боль в ноге заметно выше твоей средней за неделю.';
+      el('redBody').textContent='Сегодня и завтра — только прогулки, коврик пропускаем. Если не откатится за 2 дня — напиши в чат.';
+    }else{
+      el('redTitle').textContent='Боль сместилась вниз по ноге.';
+      el('redBody').textContent='Это периферизация. Сегодня и завтра — только прогулки, коврик пропускаем. Если не откатится за 2 дня — напиши в чат.';
+    }
+  }else{
+    el('redBlock').hidden=true;
+    el('coachLine').hidden=false;
+    el('coachLine').textContent=COACH[(dayNumber()-1+COACH.length*100)%COACH.length].replace('{N}',dayNumber());
+  }
+}
+
+// ── рендер: столб ──
+function renderColumn(newVert){
+  const days=movementDays();
+  const count=days.length;
+  const lvl=count===0?0:Math.floor((count-1)/SPINE);
+  const shown=days.slice(lvl*SPINE);
+  let html='';
+  shown.forEach((k,i)=>{
+    const full=isFull(state.days[k]);
+    const isLast=i===shown.length-1;
+    html+='<div class="vert'+(full?'':' part')+(isLast&&newVert?' new':'')+'"></div>';
+  });
+  const today=state.days[todayKey()];
+  const todayCounted=today&&today.done.length>0;
+  if(!todayCounted&&shown.length<SPINE)html+='<div class="vert ghost"></div>';
+  el('column').innerHTML=html;
+  el('columnCaption').textContent=(count===0?0:shown.length)+'/'+SPINE+' · СТОЛБ '+(lvl+1);
+}
+
+// ── рендер: задачи ──
+function renderTasks(){
+  const rec=state.days[todayKey()];
+  const done=rec?rec.done:[];
+  el('taskList').innerHTML=state.program.map(p=>
+    '<button class="task'+(done.includes(p.id)?' done':'')+'" data-id="'+esc(p.id)+'" aria-pressed="'+done.includes(p.id)+'">'+
+    '<span class="ring">'+CHECK+'</span><span class="t">'+esc(p.title)+'</span></button>'
+  ).join('');
+}
+el('taskList').addEventListener('click',e=>{
+  const btn=e.target.closest('.task');if(!btn)return;
+  const before=movementDays().length;
+  const rec=ensureDay(todayKey());
+  rec.total=state.program.length;
+  const id=btn.dataset.id;
+  const i=rec.done.indexOf(id);
+  if(i>=0)rec.done.splice(i,1);else rec.done.push(id);
+  save();
+  const after=movementDays().length;
+  if(after>before){
+    const m=MILESTONES.find(m=>m.n===after);
+    if(m)toast(m.n+' — '+m.t.toLowerCase());
+  }
+  renderTasks();renderColumn(after>before);renderMini();renderStats();
+});
+
+// ── вечерний замер ──
+let pendingDir=null;
+function renderMeasure(){
+  const today=state.days[todayKey()];
+  const prev=prevRecorded(keyPlus(todayKey(),1),1)[0];
+  const src=(today&&today.recorded)?today:prev;
+  el('painBack').value=src&&typeof src.painBack==='number'?src.painBack:5;
+  el('painLeg').value=src&&typeof src.painLeg==='number'?src.painLeg:3;
+  el('painBackOut').textContent=el('painBack').value;
+  el('painLegOut').textContent=el('painLeg').value;
+  pendingDir=(today&&today.recorded)?today.direction:null;
+  el('noteInput').value=(today&&today.note)||'';
+  renderDirSeg();
+  el('recordBtn').textContent=(today&&today.recorded)?'Обновить запись':'Записать день';
+}
+function renderDirSeg(){
+  el('dirSeg').querySelectorAll('button').forEach(b=>{
+    b.className=b.dataset.dir===pendingDir?('sel-'+pendingDir):'';
+  });
+}
+el('dirSeg').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  pendingDir=pendingDir===b.dataset.dir?null:b.dataset.dir;
+  renderDirSeg();
+});
+el('painBack').addEventListener('input',()=>el('painBackOut').textContent=el('painBack').value);
+el('painLeg').addEventListener('input',()=>el('painLegOut').textContent=el('painLeg').value);
+el('recordBtn').addEventListener('click',()=>{
+  const rec=ensureDay(todayKey());
+  rec.total=state.program.length;
+  rec.painBack=+el('painBack').value;
+  rec.painLeg=+el('painLeg').value;
+  rec.direction=pendingDir;
+  rec.note=el('noteInput').value.trim();
+  rec.recorded=true;
+  save();
+  toast('Записано');
+  renderAll(false);
+});
+
+// ── графики ──
+function chartSVG(N,w,h){
+  const end=todayKey();
+  let backD='',legD='',dots='';let pb=false,pl=false,points=0;
+  for(let i=0;i<N;i++){
+    const k=keyPlus(end,i-(N-1));
+    const r=state.days[k];
+    const x=N===1?w/2:(i/(N-1))*w;
+    if(r&&r.recorded&&typeof r.painBack==='number'){
+      points++;
+      const yb=h-(r.painBack/10)*h, yl=h-(r.painLeg/10)*h;
+      backD+=(pb?'L':'M')+x.toFixed(1)+','+yb.toFixed(1);pb=true;
+      legD+=(pl?'L':'M')+x.toFixed(1)+','+yl.toFixed(1);pl=true;
+      dots+='<circle cx="'+x.toFixed(1)+'" cy="'+yb.toFixed(1)+'" r="2.6" fill="var(--ink)"/>'+
+            '<circle cx="'+x.toFixed(1)+'" cy="'+yl.toFixed(1)+'" r="2.6" fill="var(--current)"/>';
+    }else{pb=false;pl=false;}
+  }
+  if(points<2)return null;
+  const grid=[0,.5,1].map(f=>'<line x1="0" y1="'+(h*f)+'" x2="'+w+'" y2="'+(h*f)+'" stroke="var(--ink12)" stroke-width="1"/>').join('')+
+    '<text x="-6" y="4" font-size="9" fill="var(--ink45)" text-anchor="end" font-family="IBM Plex Mono,monospace">10</text>'+
+    '<text x="-6" y="'+(h+3)+'" font-size="9" fill="var(--ink45)" text-anchor="end" font-family="IBM Plex Mono,monospace">0</text>';
+  return '<svg class="chart" viewBox="-14 -6 '+(w+20)+' '+(h+12)+'" xmlns="http://www.w3.org/2000/svg">'+grid+
+    '<path d="'+backD+'" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'+
+    '<path d="'+legD+'" fill="none" stroke="var(--current)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'+dots+'</svg>';
+}
+function renderMini(){
+  const svg=chartSVG(14,300,70);
+  el('miniChart').innerHTML=svg||'<div class="chart-empty">График появится после двух вечерних записей.</div>';
+  const verts=movementDays().length;
+  const full=movementDays().filter(k=>isFull(state.days[k])).length;
+  el('miniCounts').textContent='Позвонков: '+verts+' · Полных дней: '+full;
+}
+
+// ── дашборд ──
+function renderStats(){
+  const days=movementDays();
+  const verts=days.length;
+  const full=days.filter(k=>isFull(state.days[k])).length;
+  const recorded=Object.keys(state.days).filter(k=>state.days[k].recorded).length;
+  const spines=Math.floor(verts/SPINE);
+  el('statGrid').innerHTML=
+    '<div class="stat"><div class="n mono">'+verts+'</div><div class="l">позвонков — дней с движением</div></div>'+
+    '<div class="stat"><div class="n mono">'+full+'</div><div class="l">полных дней (вся программа)</div></div>'+
+    '<div class="stat"><div class="n mono">'+spines+'</div><div class="l">собранных столбов по 24</div></div>'+
+    '<div class="stat"><div class="n mono">'+recorded+'</div><div class="l">вечерних записей боли</div></div>';
+  const svg=chartSVG(30,300,110);
+  el('bigChart').innerHTML=svg||'<div class="chart-empty">График появится после двух вечерних записей.</div>';
+  // направление за 14 дней
+  const SYM={up:'↑',same:'=',down:'↓'};
+  let strip='';
+  for(let i=13;i>=0;i--){
+    const k=keyPlus(todayKey(),-i);
+    const r=state.days[k];
+    const dir=r&&r.recorded?r.direction:null;
+    strip+='<div class="dir-cell '+(dir||'')+'" title="'+k+'">'+(dir?SYM[dir]:'·')+'</div>';
+  }
+  el('dirStrip').innerHTML=strip;
+  el('mileList').innerHTML=MILESTONES.map(m=>{
+    const done=verts>=m.n;
+    return '<div class="mile'+(done?' done':'')+'"><span class="mark">'+(done?CHECK:'')+'</span>'+
+      '<span class="mt">'+esc(m.t)+'</span><span class="mp mono">'+Math.min(verts,m.n)+'/'+m.n+'</span></div>';
+  }).join('');
+}
+
+// ── медвкладка: расшифровка зашифрованного vault.json ──
+function b64ToBytes(b64){const bin=atob(b64);const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return a;}
+let _vaultRaw=null;
+async function fetchVault(){
+  if(_vaultRaw)return _vaultRaw;
+  const r=await fetch('vault.json',{cache:'no-store'});
+  if(!r.ok)throw new Error('no-vault');
+  _vaultRaw=await r.json();return _vaultRaw;
+}
+async function unlock(pass){
+  const v=await fetchVault();
+  const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pass),'PBKDF2',false,['deriveKey']);
+  const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64ToBytes(v.kdf.salt),iterations:v.kdf.iter,hash:v.kdf.hash||'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64ToBytes(v.iv)},key,b64ToBytes(v.ct)); // бросит при неверном пароле
+  VAULT=JSON.parse(new TextDecoder().decode(new Uint8Array(pt)));
+}
+function medRows(list){return (list||[]).map(r=>
+  '<div class="med-row'+(r.k==='sub'?' sub':'')+'"><span>'+esc(r.l)+'</span><span class="v'+(r.k==='warn'?' warn':'')+'">'+esc(r.v)+'</span></div>').join('');}
+function renderVault(){
+  el('vaultContent').innerHTML=
+    '<div class="vault-bar"><span class="vdot"></span>ОТКРЫТО<span class="relock" id="relock">закрыть замок</span></div>'+
+    '<div class="card">'+medRows(VAULT.spine)+'</div>'+
+    '<div class="card section-gap">'+medRows(VAULT.labs)+'</div>'+
+    '<div class="divider">Анализы · 14.07.2026</div>'+
+    '<p class="an-intro">28 обследований чек-апа. Тап по строке — открыть оригинал PDF. Заметки — человеческим языком, без цифр, которые ничего не говорят.</p>'+
+    '<p class="an-legend"><span class="sdot dot-g" style="display:inline-block;vertical-align:middle;margin-right:5px"></span><b>норма</b> &nbsp; <span class="sdot dot-w" style="display:inline-block;vertical-align:middle;margin:0 5px"></span><b>обратить внимание</b> &nbsp; <span class="sdot dot-r" style="display:inline-block;vertical-align:middle;margin:0 5px"></span><b>находка</b></p>'+
+    '<div id="analysesRoot"></div>';
+  renderAnalyses();
+}
+function renderAnalyses(){
+  const worst=items=>items.some(i=>i.s==='r')?'r':items.some(i=>i.s==='w')?'w':'g';
+  const DC={g:'dot-g',w:'dot-w',r:'dot-r'};
+  el('analysesRoot').innerHTML=(VAULT.analyses||[]).map((c,ci)=>
+    '<details class="cat"'+(ci===0?' open':'')+'>'+
+      '<summary><span class="sdot '+DC[worst(c.items)]+'"></span>'+esc(c.cat)+
+        '<span class="scount">'+c.items.length+'</span>'+
+        '<span class="chev"><svg width="8" height="12" viewBox="0 0 8 12"><path d="M1 1l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>'+
+      '</summary>'+
+      c.items.map(i=>
+        '<div class="an"><div class="an-head"><span class="an-dot '+DC[i.s]+'"></span>'+
+        '<span class="an-title">'+esc(i.t)+'</span></div>'+
+        '<div class="an-note">'+esc(i.note)+'</div>'+
+        '<button class="an-open" data-pdf="'+i.n+'">открыть PDF ↗</button></div>'
+      ).join('')+
+    '</details>'
+  ).join('');
+}
+function openPdf(n){
+  const key=('0'+n).slice(-2);
+  const b64=VAULT&&VAULT.pdfs&&VAULT.pdfs[key];
+  if(!b64){toast('PDF не найден в архиве');return;}
+  const url=URL.createObjectURL(new Blob([b64ToBytes(b64)],{type:'application/pdf'}));
+  const w=window.open(url,'_blank');
+  if(!w)location.href=url; // если браузер заблокировал новую вкладку
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+function lockVault(){
+  VAULT=null;
+  el('vaultContent').hidden=true;el('vaultContent').innerHTML='';
+  el('lockCard').hidden=false;el('passInput').value='';el('lockErr').hidden=true;
+}
+// разблокировка по вводу пароля
+el('lockForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const pass=el('passInput').value;
+  if(!pass)return;
+  const btn=el('unlockBtn'),err=el('lockErr');
+  err.hidden=true;btn.disabled=true;btn.textContent='Открываю…';
+  try{
+    await unlock(pass);
+    el('passInput').value='';
+    el('lockCard').hidden=true;
+    el('vaultContent').hidden=false;
+    renderVault();
+  }catch(ex){
+    if(ex&&ex.message==='no-vault'){err.textContent='Файл данных ещё не загружен на сайт (vault.json). Собери его командой и опубликуй.';}
+    else{err.textContent='Неверный пароль.';}
+    err.hidden=false;
+    el('passInput').select();
+  }finally{btn.disabled=false;btn.textContent='Открыть';}
+});
+// делегирование: открыть PDF / закрыть замок
+el('vaultContent').addEventListener('click',e=>{
+  const pdf=e.target.closest('[data-pdf]');
+  if(pdf){openPdf(+pdf.dataset.pdf);return;}
+  if(e.target.id==='relock')lockVault();
+});
+
+// ── программа ──
+function renderProgram(){
+  el('programList').innerHTML=state.program.map(p=>
+    '<div class="prow"><input value="'+esc(p.title)+'" data-id="'+esc(p.id)+'" maxlength="60">'+
+    '<button class="pdel" data-id="'+esc(p.id)+'" aria-label="удалить">✕</button></div>'
+  ).join('');
+}
+function syncTodayWithProgram(){
+  const rec=state.days[todayKey()];
+  if(rec){
+    rec.done=rec.done.filter(id=>state.program.some(p=>p.id===id));
+    rec.total=state.program.length;
+  }
+}
+el('programList').addEventListener('change',e=>{
+  const inp=e.target.closest('input');if(!inp)return;
+  const p=state.program.find(p=>p.id===inp.dataset.id);
+  if(p){const v=inp.value.trim();if(v)p.title=v;else inp.value=p.title;}
+  save();renderTasks();
+});
+el('programList').addEventListener('click',e=>{
+  const btn=e.target.closest('.pdel');if(!btn)return;
+  if(state.program.length<=1){toast('Хотя бы один пункт должен остаться');return}
+  state.program=state.program.filter(p=>p.id!==btn.dataset.id);
+  syncTodayWithProgram();save();
+  renderProgram();renderTasks();renderColumn(false);renderMini();renderStats();
+});
+el('addTask').addEventListener('click',()=>{
+  if(state.program.length>=9){toast('Больше девяти пунктов — уже квест, не трекер');return}
+  state.program.push({id:'t'+Date.now().toString(36),title:'Новый пункт'});
+  syncTodayWithProgram();save();
+  renderProgram();renderTasks();renderColumn(false);
+  const inputs=el('programList').querySelectorAll('input');
+  const last=inputs[inputs.length-1];if(last){last.focus();last.select();}
+});
+el('resetProgram').addEventListener('click',()=>{
+  if(!confirm('Вернуть стандартную программу из пяти пунктов?'))return;
+  state.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));
+  syncTodayWithProgram();save();
+  renderProgram();renderTasks();renderColumn(false);renderMini();renderStats();
+});
+
+// ── экспорт ──
+async function doExport(){
+  const data={app:'Столб',exportedAt:new Date().toISOString(),startDate:state.startDate,day:dayNumber(),program:state.program,days:state.days};
+  const text=JSON.stringify(data,null,1);
+  const showFallback=()=>{const ta=el('exportFallback');ta.hidden=false;ta.value=text;ta.focus();ta.select();toast('Скопируй из поля вручную')};
+  try{
+    // clipboard может молча зависнуть без разрешения — не ждём дольше 800 мс
+    await Promise.race([
+      navigator.clipboard.writeText(text),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),800))
+    ]);
+    toast('Скопировано — вставь в чат');
+  }catch(e){showFallback();}
+}
+el('exportBtn').addEventListener('click',doExport);
+el('linkExport').addEventListener('click',()=>{switchTab('data');doExport()});
+el('linkFlags').addEventListener('click',()=>{switchTab('data');setTimeout(()=>el('redflags').scrollIntoView({behavior:'smooth'}),60)});
+
+// ── вкладки ──
+function switchTab(name){
+  document.querySelectorAll('main > section').forEach(s=>s.hidden=s.id!=='tab-'+name);
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+  window.scrollTo(0,0);
+}
+el('nav').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(b)switchTab(b.dataset.tab);
+});
+
+// ── общий рендер ──
+function renderAll(resetMeasure=true){
+  renderHeader();renderCoach();renderColumn(false);renderTasks();
+  if(resetMeasure)renderMeasure();else{
+    const today=state.days[todayKey()];
+    el('recordBtn').textContent=(today&&today.recorded)?'Обновить запись':'Записать день';
+  }
+  renderMini();renderStats();renderProgram();
+}
+// возврат фокуса: перечитать хранилище (вторая вкладка могла писать) и поймать смену суток
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden){state=load();renderAll();}
+});
+if(!localStorage.getItem(LS_KEY))save(); // фиксируем startDate только при первом открытии
+renderAll();
+</script>
+</body>
+</html>
