@@ -105,12 +105,30 @@ input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;ba
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--bone);border:2.5px solid var(--ink);margin-top:-10px;box-shadow:0 1px 4px rgba(16,38,44,.25)}
 input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--ink) 14%,var(--film)),var(--pain))}
 input[type=range]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:var(--bone);border:2.5px solid var(--ink)}
-.seg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
-.seg button{background:var(--bone);border:1px solid var(--ink12);border-radius:10px;padding:11px 4px;font-size:14px}
-.seg button.sel-up{background:var(--vital);border-color:var(--vital);color:#fff}
-.seg button.sel-same{background:var(--ink);border-color:var(--ink);color:var(--bone)}
-.seg button.sel-down{background:var(--pain);border-color:var(--pain);color:#fff}
 .seg-hint{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink45);margin-top:8px}
+
+/* лесенка зон: до куда спускается боль (упрощённая карта тела) */
+.zone-title{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.12em;color:var(--ink45);margin:16px 0 2px}
+.zone-sub{font-size:12.5px;color:var(--ink60);margin-bottom:9px}
+.zone{display:flex;align-items:center;gap:11px;width:100%;background:var(--film);border:1px solid var(--ink12);border-radius:10px;padding:11px 13px;font-size:14px;text-align:left;color:var(--ink);position:relative;touch-action:manipulation}
+.zone+.zone{margin-top:6px}
+.zone .zr{flex:none;width:18px;height:18px;border-radius:50%;border:2px solid var(--ink30);background:var(--bone)}
+.zone.path{background:color-mix(in srgb,var(--current) 7%,var(--film))}
+.zone.sel{background:color-mix(in srgb,var(--current) 14%,var(--bone));border-color:var(--current)}
+.zone.sel .zr{border-color:var(--current);background:var(--current);box-shadow:inset 0 0 0 3.5px var(--bone)}
+.zone .zdepth{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink30)}
+.zone-verdict{font-size:13px;margin-top:10px;line-height:1.45}
+.zone-verdict.good{color:var(--vital)}
+.zone-verdict.bad{color:var(--pain)}
+.zone-verdict.mid{color:var(--ink60)}
+
+/* синхронизация */
+.sync-status{display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink60);margin-top:8px}
+.sync-status .sd{width:8px;height:8px;border-radius:50%;background:var(--ink30);flex:none}
+.sync-status.on .sd{background:var(--vital)}
+.sync-status.err .sd{background:var(--pain)}
+#syncToken{width:100%;margin-top:10px;background:var(--film);border:1px solid var(--ink12);border-radius:10px;padding:12px 14px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink)}
+.sync-off{margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink45);text-decoration:underline;text-underline-offset:3px;background:none;border:none;cursor:pointer}
 #noteInput{width:100%;margin-top:12px;background:var(--bone);border:1px solid var(--ink12);border-radius:10px;padding:12px 14px;font:inherit;font-size:16px;color:var(--ink)}
 #noteInput::placeholder{color:var(--ink30)}
 .record-btn{display:block;width:100%;margin-top:14px;background:var(--ink);color:var(--bone);border-radius:12px;padding:16px;font-size:16px;font-weight:600}
@@ -276,12 +294,10 @@ nav button.active{color:var(--ink);box-shadow:inset 0 2.5px 0 var(--vital)}
       <input type="range" id="painLeg" min="0" max="10" step="1" value="3">
       <output id="painLegOut">3</output>
     </div>
-    <div class="seg" id="dirSeg">
-      <button data-dir="up">↑ выше</button>
-      <button data-dir="same">= так же</button>
-      <button data-dir="down">↓ ниже</button>
-    </div>
-    <div class="seg-hint">выше = к пояснице (хорошо) · ниже = в голень/стопу</div>
+    <div class="zone-title">ДО КУДА СЕГОДНЯ СПУСКАЛАСЬ БОЛЬ</div>
+    <div class="zone-sub">Отметь самую нижнюю точку, где чувствовал боль или онемение за день.</div>
+    <div id="zoneList"></div>
+    <div class="zone-verdict" id="zoneVerdict"></div>
     <input type="text" id="noteInput" placeholder="заметка, одна строка — необязательно" maxlength="140">
     <button class="record-btn" id="recordBtn">Записать день</button>
   </div>
@@ -399,6 +415,17 @@ nav button.active{color:var(--ink);box-shadow:inset 0 2.5px 0 var(--vital)}
     <p>Это синдром конского хвоста, счёт идёт на часы — не жди утра. На 14.07.2026 ничего из этого нет.</p>
   </div>
 
+  <div class="card section-gap" id="syncCard">
+    <div class="kicker" style="font-size:11px">СИНХРОНИЗАЦИЯ УСТРОЙСТВ</div>
+    <div class="sync-status" id="syncStatus"><span class="sd"></span><span id="syncStatusText">выключена — данные только в этом браузере</span></div>
+    <div id="syncSetup">
+      <p style="font-size:13px;color:var(--ink60);margin-top:10px;line-height:1.5">Отметки телефона и компа будут сходиться сами — через твой GitHub, зашифрованно. Один раз вставь сюда токен на каждом устройстве. Токен: github.com/settings/tokens → Generate new token (classic) → галочка только «gist» → Generate.</p>
+      <input id="syncToken" type="password" placeholder="ghp_… токен с правом gist" autocomplete="off">
+      <button class="record-btn" id="syncEnable" style="margin-top:10px">Включить синхронизацию</button>
+    </div>
+    <button class="sync-off" id="syncDisable" hidden>отключить на этом устройстве</button>
+  </div>
+
   <div class="card section-gap">
     <div class="kicker" style="font-size:11px">ЭКСПОРТ</div>
     <p style="font-size:14px;margin-top:8px">Скопируй данные и вставь в чат реабилитации — посмотрим динамику и обновим программу.</p>
@@ -436,7 +463,6 @@ let VAULT=null;   // сюда ляжет расшифрованное { spine, l
 
 const DEFAULT_PROGRAM=[
   {id:'walk1',title:'Прогулка после завтрака'},
-  {id:'walk2',title:'Прогулка после обеда'},
   {id:'walk3',title:'Прогулка после ужина'},
   {id:'mat',title:'Коврик, 7 минут'},
   {id:'breaks',title:'Разрывы сидения каждые 40 мин'}
@@ -513,12 +539,17 @@ function load(){
         if(!Array.isArray(s.program)||!s.program.length)s.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));
         if(!s.courses)s.courses=JSON.parse(JSON.stringify(DEFAULT_COURSES));
         for(const id of Object.keys(DEFAULT_COURSES))if(!s.courses[id])s.courses[id]=JSON.parse(JSON.stringify(DEFAULT_COURSES[id]));
+        if(!s.m2){ // миграция: обеденная прогулка убрана из программы 14.07
+          s.m2=1;
+          const w=s.program.find(p=>p.id==='walk2');
+          if(w&&w.title==='Прогулка после обеда')s.program=s.program.filter(p=>p.id!=='walk2');
+        }
         return s}}
   }catch(e){}
   return freshState();
 }
 let state=load();
-function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(state))}catch(e){}}
+function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(state))}catch(e){} if(typeof schedulePush==='function')schedulePush();}
 
 function ensureDay(key){
   if(!state.days[key])state.days[key]={done:[],total:state.program.length,recorded:false,painBack:null,painLeg:null,direction:null,note:'',meds:{}};
@@ -661,6 +692,7 @@ el('taskList').addEventListener('click',e=>{
   if(mbtn){
     const rec=ensureDay(todayKey());
     rec.meds[mbtn.dataset.med]=!rec.meds[mbtn.dataset.med];
+    rec.u=Date.now();
     save();renderTasks();
     return;
   }
@@ -670,6 +702,7 @@ el('taskList').addEventListener('click',e=>{
     const rec=ensureDay(todayKey());
     const v=Math.min(2,Math.max(0,(+rec.meds.lyrica_night||0)+(+ly.dataset.ly)));
     rec.meds.lyrica_night=v;
+    rec.u=Date.now();
     save();renderTasks();renderStats();
     return;
   }
@@ -681,6 +714,7 @@ el('taskList').addEventListener('click',e=>{
   const id=btn.dataset.id;
   const i=rec.done.indexOf(id);
   if(i>=0)rec.done.splice(i,1);else rec.done.push(id);
+  rec.u=Date.now();
   save();
   const after=movementDays().length;
   if(after>before){
@@ -711,8 +745,36 @@ function renderMedNotices(){
   el('finishedCourses').hidden=!fin;
 }
 
-// ── вечерний замер ──
-let pendingDir=null;
+// ── вечерний замер: лесенка зон (упрощённая карта тела, как в трекерах боли) ──
+const ZONES=['Только поясница','Ягодица','Бедро','Голень','Стопа'];
+let pendingZone=null;
+function lastZoneBefore(key){
+  const ks=Object.keys(state.days).filter(k=>k<key&&state.days[k].recorded&&typeof state.days[k].zone==='number').sort();
+  return ks.length?state.days[ks[ks.length-1]].zone:null;
+}
+function renderZones(){
+  el('zoneList').innerHTML=ZONES.map((z,i)=>{
+    const cls=pendingZone===i?' sel':(pendingZone!=null&&i<pendingZone?' path':'');
+    return '<button class="zone'+cls+'" data-zone="'+i+'" aria-pressed="'+(pendingZone===i)+'">'+
+      '<span class="zr"></span>'+z+'<span class="zdepth">'+(i===0?'△ верх':i===4?'▽ низ':'')+'</span></button>';
+  }).join('');
+  renderZoneVerdict();
+}
+function renderZoneVerdict(){
+  const v=el('zoneVerdict');
+  if(pendingZone==null){v.textContent='';v.className='zone-verdict';return;}
+  const prev=lastZoneBefore(todayKey());
+  if(prev==null){v.textContent='Первая отметка — станет точкой сравнения на завтра.';v.className='zone-verdict mid';return;}
+  if(pendingZone<prev){v.textContent='Выше, чем в прошлый раз ('+ZONES[prev].toLowerCase()+'). Боль уходит к пояснице — это хорошо.';v.className='zone-verdict good';return;}
+  if(pendingZone>prev){v.textContent='Ниже, чем в прошлый раз ('+ZONES[prev].toLowerCase()+'). Это стоп-сигнал — после записи появится, что делать.';v.className='zone-verdict bad';return;}
+  v.textContent='Так же, как в прошлый раз ('+ZONES[prev].toLowerCase()+').';v.className='zone-verdict mid';
+}
+el('zoneList').addEventListener('click',e=>{
+  const b=e.target.closest('[data-zone]');if(!b)return;
+  const z=+b.dataset.zone;
+  pendingZone=pendingZone===z?null:z;
+  renderZones();
+});
 function renderMeasure(){
   const today=state.days[todayKey()];
   const prev=prevRecorded(keyPlus(todayKey(),1),1)[0];
@@ -721,21 +783,11 @@ function renderMeasure(){
   el('painLeg').value=src&&typeof src.painLeg==='number'?src.painLeg:3;
   el('painBackOut').textContent=el('painBack').value;
   el('painLegOut').textContent=el('painLeg').value;
-  pendingDir=(today&&today.recorded)?today.direction:null;
+  pendingZone=(today&&today.recorded&&typeof today.zone==='number')?today.zone:null;
   el('noteInput').value=(today&&today.note)||'';
-  renderDirSeg();
+  renderZones();
   el('recordBtn').textContent=(today&&today.recorded)?'Обновить запись':'Записать день';
 }
-function renderDirSeg(){
-  el('dirSeg').querySelectorAll('button').forEach(b=>{
-    b.className=b.dataset.dir===pendingDir?('sel-'+pendingDir):'';
-  });
-}
-el('dirSeg').addEventListener('click',e=>{
-  const b=e.target.closest('button');if(!b)return;
-  pendingDir=pendingDir===b.dataset.dir?null:b.dataset.dir;
-  renderDirSeg();
-});
 el('painBack').addEventListener('input',()=>el('painBackOut').textContent=el('painBack').value);
 el('painLeg').addEventListener('input',()=>el('painLegOut').textContent=el('painLeg').value);
 el('recordBtn').addEventListener('click',()=>{
@@ -743,9 +795,14 @@ el('recordBtn').addEventListener('click',()=>{
   rec.total=state.program.length;
   rec.painBack=+el('painBack').value;
   rec.painLeg=+el('painLeg').value;
-  rec.direction=pendingDir;
+  // направление выводим сами из зоны — пользователь ничего не сравнивает в голове
+  const prevZone=lastZoneBefore(todayKey());
+  rec.zone=pendingZone;
+  rec.direction=(pendingZone==null||prevZone==null)?null:
+    (pendingZone<prevZone?'up':pendingZone>prevZone?'down':'same');
   rec.note=el('noteInput').value.trim();
   rec.recorded=true;
+  rec.u=Date.now();
   save();
   toast('Записано');
   renderAll(false);
@@ -946,7 +1003,7 @@ el('coursesList').addEventListener('change',e=>{
   const inp=e.target.closest('input[data-course]');if(!inp)return;
   const c=state.courses[inp.dataset.course];
   if(c&&/^\d{4}-\d{2}-\d{2}$/.test(inp.value))c.start=inp.value;else inp.value=c.start;
-  save();renderTasks();renderMedNotices();renderStats();
+  state.metaU=Date.now();save();renderTasks();renderMedNotices();renderStats();
 });
 function syncTodayWithProgram(){
   const rec=state.days[todayKey()];
@@ -959,19 +1016,19 @@ el('programList').addEventListener('change',e=>{
   const inp=e.target.closest('input');if(!inp)return;
   const p=state.program.find(p=>p.id===inp.dataset.id);
   if(p){const v=inp.value.trim();if(v)p.title=v;else inp.value=p.title;}
-  save();renderTasks();
+  state.metaU=Date.now();save();renderTasks();
 });
 el('programList').addEventListener('click',e=>{
   const btn=e.target.closest('.pdel');if(!btn)return;
   if(state.program.length<=1){toast('Хотя бы один пункт должен остаться');return}
   state.program=state.program.filter(p=>p.id!==btn.dataset.id);
-  syncTodayWithProgram();save();
+  state.metaU=Date.now();syncTodayWithProgram();save();
   renderProgram();renderTasks();renderColumn(false);renderMini();renderStats();
 });
 el('addTask').addEventListener('click',()=>{
   if(state.program.length>=9){toast('Больше девяти пунктов — уже квест, не трекер');return}
   state.program.push({id:'t'+Date.now().toString(36),title:'Новый пункт'});
-  syncTodayWithProgram();save();
+  state.metaU=Date.now();syncTodayWithProgram();save();
   renderProgram();renderTasks();renderColumn(false);
   const inputs=el('programList').querySelectorAll('input');
   const last=inputs[inputs.length-1];if(last){last.focus();last.select();}
@@ -979,7 +1036,7 @@ el('addTask').addEventListener('click',()=>{
 el('resetProgram').addEventListener('click',()=>{
   if(!confirm('Вернуть стандартную программу из пяти пунктов?'))return;
   state.program=JSON.parse(JSON.stringify(DEFAULT_PROGRAM));
-  syncTodayWithProgram();save();
+  state.metaU=Date.now();syncTodayWithProgram();save();
   renderProgram();renderTasks();renderColumn(false);renderMini();renderStats();
 });
 
@@ -1000,6 +1057,126 @@ async function doExport(){
 el('exportBtn').addEventListener('click',doExport);
 el('linkExport').addEventListener('click',()=>{switchTab('data');doExport()});
 el('linkFlags').addEventListener('click',()=>{switchTab('data');setTimeout(()=>el('redflags').scrollIntoView({behavior:'smooth'}),60)});
+
+// ── синхронизация устройств: секретный GitHub Gist, содержимое шифруется ключом из токена ──
+const SYNC_CFG_KEY='stolb-sync';
+const SYNC_FILE='stolb.sync.json';
+let syncCfg=null;try{syncCfg=JSON.parse(localStorage.getItem(SYNC_CFG_KEY))}catch(e){}
+let pushTimer=null;
+
+function bytesToB64(u8){let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s)}
+function ghHeaders(t){return {'Authorization':'Bearer '+(t||syncCfg.t),'Accept':'application/vnd.github+json','Content-Type':'application/json'}}
+function syncStatus(cls,text){
+  const s=el('syncStatus');if(!s)return;
+  s.className='sync-status'+(cls?' '+cls:'');
+  el('syncStatusText').textContent=text;
+  el('syncSetup').hidden=!!syncCfg;
+  el('syncDisable').hidden=!syncCfg;
+}
+async function syncAesKey(){
+  const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(syncCfg.t),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt:new TextEncoder().encode('stolb-sync-v1'),iterations:100000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function encStateStr(){
+  const key=await syncAesKey();
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(JSON.stringify(state)));
+  return JSON.stringify({v:1,iv:bytesToB64(iv),ct:bytesToB64(new Uint8Array(ct))});
+}
+// слияние: день выигрывает тот, что менялся позже; программа/курсы — по metaU
+function mergeStates(local,remote){
+  const base=((remote.metaU||0)>(local.metaU||0))?remote:local;
+  const out=JSON.parse(JSON.stringify(base));
+  out.days={};
+  const keys=new Set([...Object.keys(local.days||{}),...Object.keys(remote.days||{})]);
+  for(const k of keys){
+    const a=(local.days||{})[k],b=(remote.days||{})[k];
+    out.days[k]=!a?b:(!b?a:(((b.u||0)>(a.u||0))?b:a));
+  }
+  out.metaU=Math.max(local.metaU||0,remote.metaU||0);
+  out.m2=1;
+  return out;
+}
+function stamp(){const d=new Date();return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)}
+async function pullSync(){
+  if(!syncCfg||DEMO)return;
+  try{
+    const r=await fetch('https://api.github.com/gists/'+syncCfg.g,{headers:ghHeaders()});
+    if(r.status===401||r.status===403||r.status===404)throw new Error('auth');
+    if(!r.ok)throw new Error('net');
+    const g=await r.json();
+    const f=g.files&&g.files[SYNC_FILE];
+    let content=f?f.content:null;
+    if(f&&f.truncated){const rr=await fetch(f.raw_url);content=await rr.text();}
+    let env=null;try{env=content?JSON.parse(content):null}catch(e){}
+    if(env&&env.iv&&env.ct){
+      const key=await syncAesKey();
+      const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64ToBytes(env.iv)},key,b64ToBytes(env.ct));
+      const remote=JSON.parse(new TextDecoder().decode(new Uint8Array(pt)));
+      const before=JSON.stringify(state);
+      const merged=mergeStates(state,remote);
+      if(JSON.stringify(merged)!==before){state=merged;save();renderAll(false);}
+      if(JSON.stringify(merged)!==JSON.stringify(remote))schedulePush();
+    }else{
+      schedulePush(); // в облаке ещё пусто — зальём наше
+    }
+    syncStatus('on','включена · обновлено '+stamp());
+  }catch(e){
+    syncStatus('err',e.message==='auth'?'токен не принят — проверь право «gist»':'нет связи — работаю локально');
+  }
+}
+function schedulePush(){
+  if(!syncCfg||DEMO)return;
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(pushSync,2000);
+}
+async function pushSync(){
+  if(!syncCfg||DEMO)return;
+  try{
+    const content=await encStateStr();
+    const r=await fetch('https://api.github.com/gists/'+syncCfg.g,{
+      method:'PATCH',headers:ghHeaders(),
+      body:JSON.stringify({files:{[SYNC_FILE]:{content}}})
+    });
+    if(!r.ok)throw new Error('net');
+    syncStatus('on','включена · обновлено '+stamp());
+  }catch(e){
+    syncStatus('err','нет связи — изменения сохранены локально');
+  }
+}
+el('syncEnable').addEventListener('click',async()=>{
+  const t=el('syncToken').value.trim();
+  if(!t){toast('Сначала вставь токен');return;}
+  const btn=el('syncEnable');btn.disabled=true;btn.textContent='Проверяю…';
+  try{
+    const h=ghHeaders(t);
+    const r=await fetch('https://api.github.com/gists?per_page=100',{headers:h});
+    if(!r.ok)throw new Error('auth');
+    const list=await r.json();
+    const existing=list.find(x=>x.files&&x.files[SYNC_FILE]);
+    let gid;
+    if(existing)gid=existing.id;
+    else{
+      const cr=await fetch('https://api.github.com/gists',{method:'POST',headers:h,
+        body:JSON.stringify({description:'stolb-sync (содержимое зашифровано)',public:false,files:{[SYNC_FILE]:{content:'{}'}}})});
+      if(!cr.ok)throw new Error('auth');
+      gid=(await cr.json()).id;
+    }
+    syncCfg={t,g:gid};
+    localStorage.setItem(SYNC_CFG_KEY,JSON.stringify(syncCfg));
+    el('syncToken').value='';
+    syncStatus('on','включена · подключаюсь…');
+    await pullSync();
+    toast('Синхронизация включена');
+  }catch(e){
+    syncStatus('err','токен не принят — нужно право «gist»');
+  }finally{btn.disabled=false;btn.textContent='Включить синхронизацию';}
+});
+el('syncDisable').addEventListener('click',()=>{
+  if(!confirm('Отключить синхронизацию на этом устройстве? Данные останутся и здесь, и в облаке.'))return;
+  syncCfg=null;localStorage.removeItem(SYNC_CFG_KEY);
+  syncStatus('','выключена — данные только в этом браузере');
+});
 
 // ── вкладки ──
 function switchTab(name){
@@ -1024,6 +1201,7 @@ function renderAll(resetMeasure=true){
 
 // ── демо-режим: баннер и листание виртуальных дней ──
 function renderDemoBar(){
+  el('syncCard').hidden=DEMO; // в песочнице синхронизации нет
   if(!DEMO){el('demoBar').hidden=true;el('demoEnter').hidden=false;return;}
   el('demoEnter').hidden=true;
   el('demoBar').hidden=false;
@@ -1041,12 +1219,14 @@ if(DEMO){
   });
 }
 
-// возврат фокуса: перечитать хранилище (вторая вкладка могла писать) и поймать смену суток
+// возврат фокуса: перечитать хранилище, поймать смену суток, подтянуть облако
 document.addEventListener('visibilitychange',()=>{
-  if(!document.hidden){state=load();renderAll();}
+  if(!document.hidden){state=load();renderAll();pullSync();}
 });
 if(!localStorage.getItem(LS_KEY))save(); // фиксируем startDate только при первом открытии
 renderAll();
+if(syncCfg&&!DEMO){syncStatus('on','включена · подключаюсь…');pullSync();}
+else syncStatus('','выключена — данные только в этом браузере');
 </script>
 </body>
 </html>
