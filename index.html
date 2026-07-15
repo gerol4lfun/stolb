@@ -206,6 +206,36 @@ details.cat[open]>summary .chev{transform:rotate(90deg)}
 .dot-g{background:var(--vital)} .dot-w{background:var(--amber)} .dot-r{background:var(--pain)}
 .prestart{background:var(--bone);border:1px solid var(--ink12);border-left:3px solid var(--current);border-radius:12px;padding:12px 14px;font-size:14px;margin-bottom:14px}
 
+/* hero: кольца дня + позвонок дня */
+.hero{padding:16px;margin-top:2px}
+.hero-main{display:flex;gap:16px;align-items:center}
+.ringbox{flex:none;width:116px;height:116px}
+.ringsvg{width:100%;height:100%;display:block}
+.ringp{transition:stroke-dasharray .5s ease}
+.hero-side{flex:1;min-width:0}
+.vday{width:66px;height:16px;border-radius:6px;background:var(--vital);position:relative;margin:9px 0 7px}
+.vday::after{content:'';position:absolute;inset:4px 21px;border-radius:3px;background:rgba(247,249,248,.35)}
+.vday.part{opacity:.35}
+.vday.ghost{background:transparent;border:1.5px dashed var(--ink30)}
+.vday.ghost::after{display:none}
+.vday.full{animation:pop .3s ease-out}
+.vday-txt{font-size:12.5px;color:var(--ink60);line-height:1.45}
+.hero-legend{display:flex;gap:14px;font-size:10.5px;color:var(--ink45);margin-top:13px}
+.hero-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:-1px;margin-right:5px}
+.hero-counts{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink60);margin-top:6px}
+.sechead{display:flex;align-items:baseline;gap:8px;font-size:18px;font-weight:700;margin:24px 2px 10px;letter-spacing:-.01em}
+.sec-badge{margin-left:auto;font-size:12px;color:var(--ink45);font-weight:400}
+.tgroup.now .tgroup-h{color:var(--vital)}
+.task .wchip{margin-left:auto;flex:none;font-size:12px;color:var(--ink45)}
+.task.done .wchip{color:var(--vital)}
+.task.walking{border-color:var(--current);animation:pulseb 2s ease-in-out infinite}
+.task.walking .wchip{color:var(--current);font-weight:600;font-size:14px}
+@keyframes pulseb{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--current) 28%,transparent)}50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--current) 10%,transparent)}}
+@media (prefers-reduced-motion:reduce){.task.walking{animation:none}}
+.bigcol{display:flex;flex-direction:column-reverse;align-items:center;gap:4px;padding:6px 0 2px;min-height:40px}
+.vert.big{width:66px;height:14px;border-radius:5px}
+.vert.big::after{inset:4px 22px}
+
 /* демо-режим */
 .demobar{background:var(--current);color:#fff;border-radius:14px;padding:12px 14px;margin-bottom:16px}
 .demobar .dhead{display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.12em}
@@ -274,13 +304,24 @@ nav button.active{color:var(--ink);box-shadow:inset 0 2.5px 0 var(--vital)}
   <div class="coach" id="coachLine"></div>
   <div id="medNotices"></div>
 
-  <div class="today-grid">
-    <div class="column-wrap">
-      <div class="column" id="column"></div>
-      <div class="column-caption" id="columnCaption">СТОЛБ</div>
+  <div class="card hero">
+    <div class="hero-main">
+      <div class="ringbox" id="ringBox"></div>
+      <div class="hero-side">
+        <div class="kicker" style="font-size:10px">ПОЗВОНОК ДНЯ</div>
+        <div class="vday ghost" id="vdayIcon"></div>
+        <div class="vday-txt" id="vdayText"></div>
+      </div>
     </div>
-    <div id="taskList"></div>
+    <div class="hero-legend mono"><span><i style="background:var(--vital)"></i>движение</span><span><i style="background:var(--current)"></i>лекарства</span></div>
+    <div class="hero-counts" id="heroCounts"></div>
   </div>
+
+  <div class="sechead">Лекарства<span class="sec-badge mono" id="medsBadge"></span></div>
+  <div id="medsList"></div>
+
+  <div class="sechead">Движение<span class="sec-badge mono" id="moveBadge"></span></div>
+  <div id="moveList"></div>
 
   <div class="divider">Вечерний замер</div>
   <div class="card">
@@ -329,6 +370,12 @@ nav button.active{color:var(--ink);box-shadow:inset 0 2.5px 0 var(--vital)}
 
   <div class="stat-grid" id="statGrid"></div>
 
+  <div class="divider">Столб</div>
+  <div class="card">
+    <div class="bigcol" id="bigColumn"></div>
+    <div class="column-caption" id="bigColumnCaption" style="margin-top:10px"></div>
+  </div>
+
   <div class="divider">Боль · 30 дней</div>
   <div class="card">
     <div class="legend"><span><i style="background:var(--ink)"></i>поясница</span><span><i style="background:var(--current)"></i>нога</span></div>
@@ -345,6 +392,12 @@ nav button.active{color:var(--ink);box-shadow:inset 0 2.5px 0 var(--vital)}
   <div class="card">
     <div id="lyrChart"></div>
     <div class="seg-hint" style="margin-top:8px">таблеток за ночь · шкала 0–2</div>
+  </div>
+
+  <div class="divider">Минуты движения · 30 дней</div>
+  <div class="card">
+    <div id="actChart"></div>
+    <div class="seg-hint" style="margin-top:8px">минуты прогулок и коврика, отмеченных таймером</div>
   </div>
 
   <div class="divider">Вехи</div>
@@ -498,21 +551,47 @@ const SLOTS=[
 ];
 
 const COACH=[
- 'Мозг спрашивает «зачем». Ответ: левая стопа уже онемела. Это нерв, не лень.',
  'Триггер — еда. Поел → встал → пошёл. Не сила воли, а сцепка.',
- 'Привычка формируется в среднем 66 дней. Ты на дне {N}. Это нормально, что пока тяжело.',
- 'Разгибание уводит боль в ногу. Прогибов нет. Никаких.',
- 'Ротация под нагрузкой — главный враг. Поворачивайся всем телом.',
- 'Боль ушла из ноги в поясницу? Это хорошо. Даже если поясница болит сильнее.',
- 'Ты бегал 10 км. Спина не болела. Ты уже знаешь, что это работает.',
- 'Прегабалин глушит боль. Первые 3 недели прогрессируем по календарю, не по ощущениям.',
- 'Пропустил день — ничего не сломалось. Столб на месте. Просто продолжи.',
- 'WalkBack, Lancet 2024: ходьба 30 мин × 5 дней почти вдвое отодвигает рецидивы.',
- 'BMJ 2024, 218 исследований: ходьба лечит депрессию не хуже, чем таблетка.',
- 'Мышцы забились — это не повреждение. Ток в ногу — это повреждение. Разница есть.',
- 'Не можешь сидеть 40 секунд — это не слабость воли. Тело ищет разгрузку.',
- 'Цель — не «перестало болеть». Цель — десятка.'
+ 'WalkBack, Lancet 2024: ходьба 30 минут пять раз в неделю почти вдвое отодвигает рецидивы.',
+ 'BMJ 2024, 218 исследований: движение лечит депрессию не слабее таблетки.',
+ 'Диски не имеют своих сосудов — их кормит только движение. Прогулка буквально их обед.',
+ 'Привычка собирается в среднем за 66 дней. Сегодня — день {N} стройки.',
+ 'Боль ушла из ноги в поясницу? Это централизация, хороший знак — даже если поясница ноет.',
+ 'Прогибов назад нет. Ротации под нагрузкой нет. Поворачивайся всем телом.',
+ 'Пропущенный день ничего не рушит. Столб стоит. Просто добавь позвонок сегодня.',
+ 'Ты бегал десятки километров без боли. Тело это помнит — ты не с нуля.',
+ 'Мышцы забились — это работа. Ток в ногу — это сигнал. Разница важна.',
+ 'Сидение — тихая нагрузка на диск. Встать раз в 40 минут — часть лечения, не перерыв.',
+ 'Цель не «перестало болеть». Цель — делать что хочешь, не спрашивая спину.',
+ 'Насыщенный позвонок — день, когда сделано всё. У тебя их уже {V}.',
+ 'Плавание и велосипед разрешены ортопедом. Надоела ходьба — меняй, а не бросай.',
+ 'Короткая прогулка сегодня лучше идеальной тренировки когда-нибудь.',
+ 'Вечерний замер — 20 секунд. Кривая из этих секунд — главный аргумент на приёме 13.08.',
+ 'Столб на экране — это твои решения, сложенные вертикально.',
+ 'День {N} из 180. Горизонт длинный, шаг короткий — одна прогулка.',
+ 'Спина не любит героизм. Она любит повторение.',
+ 'Сначала выходишь ради спины. Потом замечаешь, что голова тоже яснее.'
 ];
+// строка дня: сперва контекст (прогресс, вехи, тренд), иначе ротация по дню
+function coachText(){
+  const n=dayNumber();
+  const verts=movementDays().length;
+  const fullVerts=movementDays().filter(k=>isFull(state.days[k])).length;
+  const ctx=[];
+  const y=state.days[keyPlus(todayKey(),-1)];
+  if(y&&isFull(y))ctx.push('Вчера — полный день, позвонок насыщенный. Сегодня можно второй подряд.');
+  const next=MILESTONES.find(m=>m.n>verts);
+  if(next&&next.n-verts===1)ctx.push('Один позвонок до вехи «'+next.t+'».');
+  if(verts===0&&n>=1)ctx.push('Первый позвонок ждёт первого движения. Начни с прогулки.');
+  const rec7=prevRecorded(keyPlus(todayKey(),1),7);
+  if(rec7.length>=5){
+    const a=(rec7[0].painLeg+rec7[1].painLeg)/2;
+    const b=(rec7[rec7.length-2].painLeg+rec7[rec7.length-1].painLeg)/2;
+    if(a-b>=1.5)ctx.push('Нога за неделю: '+Math.round(a)+' → '+Math.round(b)+'. Это динамика, не случайность.');
+  }
+  const pool=ctx.length?ctx:COACH;
+  return pool[(n-1+pool.length*100)%pool.length].replace('{N}',n).replace('{V}',fullVerts);
+}
 
 const MILESTONES=[
  {n:7,  t:'Первая неделя движения'},
@@ -609,7 +688,7 @@ function renderCoach(){
     el('redBlock').hidden=true;
     el('coachLine').hidden=false;
     el('coachLine').className='prestart';
-    el('coachLine').textContent='Старт завтра, 15 июля. Сегодня можно осмотреться: во вкладке «Данные» — разбор всех анализов простым языком. Отмечать пункты начнёшь с утра.';
+    el('coachLine').textContent='Старт 15 июля. Сегодня можно осмотреться: во вкладке «Данные» — разбор всех анализов простым языком.';
     return;
   }
   el('coachLine').className='coach';
@@ -627,93 +706,173 @@ function renderCoach(){
   }else{
     el('redBlock').hidden=true;
     el('coachLine').hidden=false;
-    el('coachLine').textContent=COACH[(dayNumber()-1+COACH.length*100)%COACH.length].replace('{N}',dayNumber());
+    el('coachLine').textContent=coachText();
   }
 }
 
-// ── рендер: столб ──
+// ── рендер: большой столб (живёт в «Динамике») ──
 function renderColumn(newVert){
-  const days=movementDays();
-  const count=days.length;
+  const bc=el('bigColumn');if(!bc)return;
+  const days=movementDays();const count=days.length;
   const lvl=count===0?0:Math.floor((count-1)/SPINE);
   const shown=days.slice(lvl*SPINE);
   let html='';
   shown.forEach((k,i)=>{
     const full=isFull(state.days[k]);
     const isLast=i===shown.length-1;
-    html+='<div class="vert'+(full?'':' part')+(isLast&&newVert?' new':'')+'"></div>';
+    html+='<div class="vert big'+(full?'':' part')+(isLast&&newVert?' new':'')+'"></div>';
   });
   const today=state.days[todayKey()];
-  const todayCounted=today&&today.done.length>0;
-  if(!todayCounted&&shown.length<SPINE)html+='<div class="vert ghost"></div>';
-  el('column').innerHTML=html;
-  el('columnCaption').textContent=(count===0?0:shown.length)+'/'+SPINE+' · СТОЛБ '+(lvl+1);
+  if(!(today&&today.done.length>0)&&shown.length<SPINE)html+='<div class="vert big ghost"></div>';
+  bc.innerHTML=html;
+  el('bigColumnCaption').textContent=(count===0?0:shown.length)+' / '+SPINE+' · СТОЛБ '+(lvl+1)+' · ВСЕГО ПОЗВОНКОВ: '+count;
 }
 
-// ── рендер: задачи, сгруппированные по приёмам пищи (движение + лекарства) ──
-function moveBtn(p,done){
-  return '<button class="task'+(done.includes(p.id)?' done':'')+'" data-id="'+esc(p.id)+'" aria-pressed="'+done.includes(p.id)+'">'+
-    '<span class="ring">'+CHECK+'</span><span class="t">'+esc(p.title)+'</span></button>';
+// ── «Сегодня»: hero-кольца + позвонок дня ──
+function fmtMS(s){s=Math.max(0,s);return Math.floor(s/60)+':'+('0'+(s%60)).slice(-2)}
+function walkMinutes(rec){let s=0;if(rec&&rec.wt)for(const w of Object.values(rec.wt))if(w.m)s+=w.m;return s}
+function currentSlotIdx(){const h=logicalNow().getHours();return h<12?0:h<17?1:h<22?2:3}
+function medsDueToday(key){
+  const due=[];
+  for(const s of SLOTS)for(const m of s.meds)if(courseActive(m.c,key))due.push(m.id);
+  return due;
 }
+function ringSVG(p1,p2){
+  const arc=(r,pct,color,w)=>{
+    const c=2*Math.PI*r;
+    let s='<circle cx="60" cy="60" r="'+r+'" fill="none" stroke="color-mix(in srgb,'+color+' 16%,transparent)" stroke-width="'+w+'"/>';
+    if(pct>0)s+='<circle cx="60" cy="60" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="'+w+'" stroke-linecap="round" stroke-dasharray="'+(c*Math.min(1,pct)).toFixed(1)+' '+c.toFixed(1)+'" transform="rotate(-90 60 60)" class="ringp"/>';
+    return s;
+  };
+  let s='<svg viewBox="0 0 120 120" class="ringsvg" xmlns="http://www.w3.org/2000/svg">'+arc(50,p1,'var(--vital)',11);
+  if(p2!=null)s+=arc(36,p2,'var(--current)',11);
+  s+='<text x="60" y="67" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="21" font-weight="600" fill="var(--ink)">'+Math.round(p1*100)+'%</text>';
+  return s+'</svg>';
+}
+function renderHero(){
+  const key=todayKey();
+  const rec=state.days[key]||{done:[],meds:{},wt:{}};
+  const total=state.program.length||1;
+  const doneM=(rec.done||[]).length;
+  const due=medsDueToday(key);
+  const taken=due.filter(id=>rec.meds&&rec.meds[id]).length;
+  el('ringBox').innerHTML=ringSVG(doneM/total,due.length?taken/due.length:null);
+  const full=total>0&&doneM>=total;
+  el('vdayIcon').className='vday '+(full?'full':doneM>0?'part':'ghost');
+  el('vdayText').textContent=full?'Насыщенный. Сегодня сделано всё.':doneM>0?'Бледный. До насыщенного: '+(total-doneM)+' из '+total+'.':'Появится после первого движения.';
+  const verts=movementDays().length;
+  const inCol=verts===0?0:((verts-1)%SPINE)+1;
+  const mins=walkMinutes(rec);
+  el('heroCounts').textContent='Позвонков: '+verts+' · Столб '+(verts===0?1:Math.floor((verts-1)/SPINE)+1)+': '+inCol+'/'+SPINE+(mins?' · В движении: '+mins+' мин':'');
+  el('medsBadge').textContent=due.length?taken+' / '+due.length:'';
+  el('moveBadge').textContent=doneM+' / '+total;
+}
+
+// ── лекарства (отдельной секцией, по приёмам пищи) ──
 function medBtn(m,meds,key){
   const on=!!meds[m.id];
   return '<button class="task med'+(on?' done':'')+'" data-med="'+esc(m.id)+'" aria-pressed="'+on+'">'+
     '<span class="ring">'+CHECK+'</span><span class="t">'+esc(m.t)+
     '<span class="course-line">'+esc(courseLine(m.c,key))+'</span></span></button>';
 }
-function renderTasks(){
+function lyricaRow(meds,key){
+  const v=Math.min(2,Math.max(0,+(meds.lyrica_night||0)));
+  return '<div class="task lyr"><span class="t">Lyrica'+
+    '<span class="course-line">'+esc(courseLine('lyrica',key))+'</span></span>'+
+    '<span class="stepper"><button data-ly="-1" aria-label="меньше"'+(v<=0?' disabled':'')+'>−</button>'+
+    '<output>'+v+'</output>'+
+    '<button data-ly="1" aria-label="больше"'+(v>=2?' disabled':'')+'>+</button></span></div>';
+}
+function renderMeds(){
   const key=todayKey();
   const rec=state.days[key];
-  const done=rec?rec.done:[];
   const meds=(rec&&rec.meds)||{};
-  const prog=id=>state.program.find(p=>p.id===id);
-  let html='';
+  const cur=currentSlotIdx();
+  let html='';let si=0;
   for(const slot of SLOTS){
+    if(!slot.meds.length&&!slot.lyrica)continue;
     let rows='';
     for(const m of slot.meds)if(courseActive(m.c,key))rows+=medBtn(m,meds,key);
-    if(slot.lyrica&&courseActive('lyrica',key)){
-      const v=Math.min(2,Math.max(0,+(meds.lyrica_night||0)));
-      rows+='<div class="task lyr"><span class="t">Lyrica'+
-        '<span class="course-line">'+esc(courseLine('lyrica',key))+'</span></span>'+
-        '<span class="stepper"><button data-ly="-1" aria-label="меньше"'+(v<=0?' disabled':'')+'>−</button>'+
-        '<output>'+v+'</output>'+
-        '<button data-ly="1" aria-label="больше"'+(v>=2?' disabled':'')+'>+</button></span></div>';
-    }
-    if(slot.walk){const p=prog(slot.walk);if(p)rows+=moveBtn(p,done);}
-    if(slot.ids)for(const id of slot.ids){const p=prog(id);if(p)rows+=moveBtn(p,done);}
-    if(slot.extras)for(const p of state.program.filter(p=>!CORE_IDS.includes(p.id)))rows+=moveBtn(p,done);
-    if(rows)html+='<div class="tgroup"><div class="tgroup-h">'+esc(slot.h)+'</div>'+rows+'</div>';
+    if(slot.lyrica&&courseActive('lyrica',key))rows+=lyricaRow(meds,key);
+    if(rows)html+='<div class="tgroup'+(si===cur?' now':'')+'"><div class="tgroup-h">'+esc(slot.h)+(si===cur?' · СЕЙЧАС':'')+'</div>'+rows+'</div>';
+    si++;
   }
-  el('taskList').innerHTML=html;
+  el('medsList').innerHTML=html||'<p class="hint" style="margin:2px">Активных курсов на сегодня нет.</p>';
 }
-el('taskList').addEventListener('click',e=>{
-  // таблетка: отдельный учёт, столб НЕ трогает (ТЗ v2 §6)
+el('medsList').addEventListener('click',e=>{
   const mbtn=e.target.closest('[data-med]');
   if(mbtn){
     const rec=ensureDay(todayKey());
     rec.meds[mbtn.dataset.med]=!rec.meds[mbtn.dataset.med];
     rec.u=Date.now();
-    save();renderTasks();
+    save();renderMeds();renderHero();
     return;
   }
-  // степпер Lyrica: 0..2, хардкод
   const ly=e.target.closest('[data-ly]');
   if(ly){
     const rec=ensureDay(todayKey());
     const v=Math.min(2,Math.max(0,(+rec.meds.lyrica_night||0)+(+ly.dataset.ly)));
     rec.meds.lyrica_night=v;
     rec.u=Date.now();
-    save();renderTasks();renderStats();
-    return;
+    save();renderMeds();renderStats();
   }
-  // движение → позвонок
+});
+
+// ── движение: прогулки с таймером «вышел/вернулся», коврик 7:00, разрывы ──
+function renderMove(){
+  const key=todayKey();
+  const rec=state.days[key]||{done:[],wt:{}};
+  const wt=rec.wt||{};
+  el('moveList').innerHTML=state.program.map(p=>{
+    const done=rec.done&&rec.done.includes(p.id);
+    const w=wt[p.id];
+    const running=!!(w&&w.o&&!w.b)&&!done;
+    let chip='',cls='';
+    if(p.id==='walk1'||p.id==='walk3'){
+      if(done)chip=(w&&w.m)?'✓ '+w.m+' мин':'✓';
+      else if(running){cls=' walking';chip='<span data-timer="'+p.id+'">'+fmtMS(Math.floor((Date.now()-w.o)/1000))+'</span>';}
+      else chip='▸ старт';
+    }else if(p.id==='mat'){
+      if(done)chip=(w&&w.m)?'✓ '+w.m+' мин':'✓';
+      else if(running){cls=' walking';chip='<span data-timer="mat">'+fmtMS(420-Math.floor((Date.now()-w.o)/1000))+'</span>';}
+      else chip='▸ 7:00';
+    }else{
+      chip=done?'✓':'';
+    }
+    return '<button class="task move'+(done?' done':'')+cls+'" data-id="'+esc(p.id)+'" aria-pressed="'+!!done+'">'+
+      '<span class="ring">'+CHECK+'</span><span class="t">'+esc(p.title)+'</span>'+
+      '<span class="wchip mono">'+chip+'</span></button>';
+  }).join('');
+}
+function renderTasks(){renderMeds();renderMove();renderHero();}
+el('moveList').addEventListener('click',e=>{
   const btn=e.target.closest('.task[data-id]');if(!btn)return;
+  const id=btn.dataset.id;
   const before=movementDays().length;
   const rec=ensureDay(todayKey());
   rec.total=state.program.length;
-  const id=btn.dataset.id;
-  const i=rec.done.indexOf(id);
-  if(i>=0)rec.done.splice(i,1);else rec.done.push(id);
+  rec.wt=rec.wt||{};
+  const done=rec.done.includes(id);
+  const timed=(id==='walk1'||id==='walk3'||id==='mat');
+  if(!timed){
+    if(done)rec.done=rec.done.filter(x=>x!==id);else rec.done.push(id);
+  }else if(done){
+    if(!confirm('Сбросить отметку?'))return;
+    rec.done=rec.done.filter(x=>x!==id);
+    delete rec.wt[id];
+  }else{
+    const w=rec.wt[id];
+    if(!w||!w.o){
+      rec.wt[id]={o:Date.now()};
+      toast(id==='mat'?'Коврик пошёл — 7:00 на таймере':'Пошёл. Хорошей прогулки');
+    }else{
+      const sec=Math.floor((Date.now()-w.o)/1000);
+      if(id==='mat'&&sec<420&&!confirm('Завершить коврик раньше 7 минут?'))return;
+      w.b=Date.now();
+      w.m=(sec>=60&&sec<=4*3600)?Math.round(sec/60):null;
+      rec.done.push(id);
+    }
+  }
   rec.u=Date.now();
   save();
   const after=movementDays().length;
@@ -721,8 +880,26 @@ el('taskList').addEventListener('click',e=>{
     const m=MILESTONES.find(m=>m.n===after);
     if(m)toast(m.n+' — '+m.t.toLowerCase());
   }
-  renderTasks();renderColumn(after>before);renderMini();renderStats();
+  renderMove();renderHero();renderColumn(after>before);renderMini();renderStats();renderCoach();
 });
+// тикер: обновляет идущие таймеры, коврик завершается сам на 7:00
+setInterval(()=>{
+  const rec=state.days[todayKey()];
+  if(!rec||!rec.wt)return;
+  let finished=false;
+  for(const [id,w] of Object.entries(rec.wt)){
+    if(!w.o||w.b||rec.done.includes(id))continue;
+    const sec=Math.floor((Date.now()-w.o)/1000);
+    if(id==='mat'&&sec>=420){
+      w.b=Date.now();w.m=7;rec.done.push(id);rec.u=Date.now();finished=true;
+      toast('Коврик готов — 7 минут');
+    }else{
+      const t=document.querySelector('[data-timer="'+id+'"]');
+      if(t)t.textContent=fmtMS(id==='mat'?420-sec:sec);
+    }
+  }
+  if(finished){save();renderMove();renderHero();renderColumn(true);renderMini();renderStats();}
+},1000);
 
 // ── плашки «курс заканчивается» + блок «курс завершён» ──
 function renderMedNotices(){
@@ -838,7 +1015,8 @@ function renderMini(){
   el('miniChart').innerHTML=svg||'<div class="chart-empty">График появится после двух вечерних записей.</div>';
   const verts=movementDays().length;
   const full=movementDays().filter(k=>isFull(state.days[k])).length;
-  el('miniCounts').textContent='Позвонков: '+verts+' · Полных дней: '+full;
+  const tmins=walkMinutes(state.days[todayKey()]);
+  el('miniCounts').textContent='Позвонков: '+verts+' · Полных дней: '+full+(tmins?' · Сегодня в движении: '+tmins+' мин':'');
 }
 
 // ── дашборд ──
@@ -871,6 +1049,7 @@ function renderStats(){
       '<span class="mt">'+esc(m.t)+'</span><span class="mp mono">'+Math.min(verts,m.n)+'/'+m.n+'</span></div>';
   }).join('');
   renderLyrChart();
+  renderActChart();
 }
 // Lyrica за 30 дней — столбики 0..2 (косвенная динамика, без интерпретаций в UI)
 function renderLyrChart(){
@@ -895,6 +1074,28 @@ function renderLyrChart(){
     '<text x="-6" y="4" font-size="9" fill="var(--ink45)" text-anchor="end" font-family="IBM Plex Mono,monospace">2</text>'+
     '<text x="-6" y="'+(h+3)+'" font-size="9" fill="var(--ink45)" text-anchor="end" font-family="IBM Plex Mono,monospace">0</text>';
   el('lyrChart').innerHTML='<svg class="chart" viewBox="-14 -4 '+(w+20)+' '+(h+10)+'" xmlns="http://www.w3.org/2000/svg">'+grid+bars+'</svg>';
+}
+// минуты прогулок за 30 дней — рост активности
+function renderActChart(){
+  const N=30,w=300,h=70;
+  let bars='',any=false,max=30;
+  const vals=[];
+  for(let i=0;i<N;i++){
+    const k=keyPlus(todayKey(),i-(N-1));
+    const m=walkMinutes(state.days[k]);
+    vals.push(m);if(m>0)any=true;if(m>max)max=m;
+  }
+  if(!any){el('actChart').innerHTML='<div class="chart-empty">Появится после первой прогулки, начатой кнопкой «старт».</div>';return;}
+  vals.forEach((m,i)=>{
+    if(m<=0)return;
+    const bw=(w/N)*0.55,x=((i+0.5)/N)*w-bw/2;
+    const bh=Math.max(3,(m/max)*(h-8));
+    bars+='<rect x="'+x.toFixed(1)+'" y="'+(h-bh).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="2" fill="var(--vital)"/>';
+  });
+  const grid='<line x1="0" y1="'+h+'" x2="'+w+'" y2="'+h+'" stroke="var(--ink12)"/>'+
+    '<text x="-6" y="8" font-size="9" fill="var(--ink45)" text-anchor="end" font-family="IBM Plex Mono,monospace">'+max+'</text>'+
+    '<text x="-6" y="'+(h+3)+'" font-size="9" fill="var(--ink45)" text-anchor="end" font-family="IBM Plex Mono,monospace">0</text>';
+  el('actChart').innerHTML='<svg class="chart" viewBox="-14 -4 '+(w+20)+' '+(h+10)+'" xmlns="http://www.w3.org/2000/svg">'+grid+bars+'</svg>';
 }
 
 // ── медвкладка: расшифровка зашифрованного vault.json ──
