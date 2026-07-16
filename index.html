@@ -556,7 +556,7 @@ const DEFAULT_COURSES={
   methycobal: {label:'Methycobal',    start:PROGRAM_START,days:20},
   piascledine:{label:'Piascledine',   start:PROGRAM_START,days:30},
   crestor:    {label:'Crestor',       start:PROGRAM_START,days:30},
-  lyrica:     {label:'Lyrica',        start:PROGRAM_START,days:20,tabs:20},
+  lyrica:     {label:'Lyrica',        start:PROGRAM_START,days:20,tabs:20,pre:0},
   voltaren:   {label:'Voltaren cream',start:PROGRAM_START,days:10}
 };
 const SLOTS=[
@@ -645,6 +645,8 @@ function load(){
         if(!s.courses)s.courses=JSON.parse(JSON.stringify(DEFAULT_COURSES));
         for(const id of Object.keys(DEFAULT_COURSES))if(!s.courses[id])s.courses[id]=JSON.parse(JSON.stringify(DEFAULT_COURSES[id]));
         if(s.courses.lyrica&&!s.courses.lyrica.tabs)s.courses.lyrica.tabs=20;
+        // поправка 16.07: одна таблетка выпита до/вне записей трекера — учитываем в блистере
+        if(s.courses.lyrica&&s.courses.lyrica.pre===undefined)s.courses.lyrica.pre=1;
         if(!s.m2){ // миграция: обеденная прогулка убрана из программы 14.07
           s.m2=1;
           const w=s.program.find(p=>p.id==='walk2');
@@ -835,7 +837,7 @@ function medBtn(m,meds,key){
 }
 function tabsWord(n){const m=n%10,h=n%100;return (m===1&&h!==11)?'таблетка':(m>=2&&m<=4&&(h<12||h>14))?'таблетки':'таблеток'}
 function lyricaTaken(){
-  let s=0;
+  let s=(state.courses.lyrica&&state.courses.lyrica.pre)||0; // выпито вне записей трекера
   for(const d of Object.values(state.days))if(d.meds&&typeof d.meds.lyrica_night==='number')s+=d.meds.lyrica_night;
   return s;
 }
