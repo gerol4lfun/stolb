@@ -236,6 +236,20 @@ details.cat[open]>summary .chev{transform:rotate(90deg)}
 .vert.big{width:66px;height:14px;border-radius:5px}
 .vert.big::after{inset:4px 22px}
 
+/* задним числом */
+.yesterday-link{background:none;border:none;color:var(--ink45);font-size:12px;margin-left:10px;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:2px 4px}
+.editbar{display:flex;align-items:center;gap:10px;background:color-mix(in srgb,var(--amber) 9%,var(--bone));border:1px solid color-mix(in srgb,var(--amber) 35%,transparent);border-radius:12px;padding:10px 12px;margin-bottom:14px;font-size:13px}
+.editbar-ctl{margin-left:auto;display:flex;gap:6px;flex:none}
+.editbar-ctl button{background:var(--bone);border:1px solid var(--ink12);border-radius:8px;padding:7px 11px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink);touch-action:manipulation}
+.editbar-ctl button:disabled{opacity:.35}
+/* пауза прогулки */
+.wctl{margin-left:auto;display:flex;gap:6px;flex:none;align-items:center}
+.wctl .wtime{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:var(--current);margin-right:2px}
+.wctl button{background:var(--film);border:1px solid var(--ink12);border-radius:8px;padding:7px 10px;font-size:12px;font-family:'IBM Plex Mono',monospace;color:var(--ink);touch-action:manipulation}
+.wctl button.fin{background:var(--vital);border-color:var(--vital);color:#fff}
+.task.pausedw{animation:none;border-color:var(--ink30)}
+.task.pausedw .wtime{color:var(--ink45)}
+
 /* демо-режим */
 .demobar{background:var(--current);color:#fff;border-radius:14px;padding:12px 14px;margin-bottom:16px}
 .demobar .dhead{display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.12em}
@@ -294,8 +308,17 @@ nav button.active{color:var(--ink);box-shadow:inset 0 2.5px 0 var(--vital)}
   <header class="page">
     <div class="kicker" id="dayCounter">ДЕНЬ 1 / 180</div>
     <h1>Сегодня</h1>
-    <div class="datemono" id="todayDate"></div>
+    <div class="datemono"><span id="todayDate"></span><button class="yesterday-link mono" id="yesterdayLink" hidden>‹ вчера</button></div>
   </header>
+
+  <div class="editbar" id="editBar" hidden>
+    <span id="editBarText">Заполняешь задним числом</span>
+    <span class="editbar-ctl">
+      <button id="ebPrev" aria-label="день раньше">‹</button>
+      <button id="ebNext" aria-label="день позже">›</button>
+      <button id="ebToday">к сегодня</button>
+    </span>
+  </div>
 
   <div class="red-block" id="redBlock" role="status" hidden>
     <b id="redTitle">Боль сместилась вниз по ноге.</b>
@@ -510,6 +533,9 @@ const PROGRAM_START='2026-07-15'; // старт программы — с зав
 const HORIZON=180;
 const SPINE=24; // позвонков в столбе
 let demoDay=1; // в демо «сегодня» = этот день программы; листается кнопками
+let viewOffset=0; // 0 = сегодня; 1 = вчера … (заполнение задним числом)
+function viewKey(){return keyPlus(todayKey(),-viewOffset)}
+function dayNumberOf(key){return Math.round((Date.parse(key)-Date.parse(state.startDate))/864e5)+1}
 
 // медданные и анализы приходят из зашифрованного vault.json после ввода пароля
 let VAULT=null;   // сюда ляжет расшифрованное { spine, labs, analyses, pdfs }
@@ -674,16 +700,45 @@ const CHECK='<svg width="12" height="10" viewBox="0 0 12 10"><path d="M1 5.2 4.4
 // ── рендер: шапка ──
 const WD=['ВС','ПН','ВТ','СР','ЧТ','ПТ','СБ'];
 function renderHeader(){
-  const n=dayNumber();
+  const WDN=WD;
+  const vk=viewKey();
+  const n=dayNumberOf(vk);
   const label=n<1?'СТАРТ 15.07.2026':('ДЕНЬ '+n+' / '+HORIZON);
   el('dayCounter').textContent=label;
-  el('dayCounter2').textContent=label;
-  const d=logicalNow();
-  el('todayDate').textContent=WD[d.getDay()]+' · '+('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+d.getFullYear();
+  el('dayCounter2').textContent='ДЕНЬ '+Math.max(1,dayNumber())+' / '+HORIZON;
+  const d=viewOffset===0?logicalNow():new Date(vk+'T12:00:00');
+  const ds=WDN[d.getDay()]+' · '+('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+d.getFullYear();
+  el('todayDate').textContent=ds;
+  document.querySelector('#tab-today h1').textContent=viewOffset===0?'Сегодня':(viewOffset===1?'Вчера':'Задним числом');
+  el('yesterdayLink').hidden=!(viewOffset===0&&!DEMO&&dayNumber()>=2);
+  // панель заднего числа
+  const eb=el('editBar');
+  if(viewOffset===0){eb.hidden=true;}
+  else{
+    eb.hidden=false;
+    el('editBarText').textContent='Заполняешь '+ds+' задним числом';
+    el('ebPrev').disabled=!canOffset(viewOffset+1);
+    el('ebNext').disabled=viewOffset<=0;
+  }
 }
+function canOffset(off){
+  if(off<0||off>14)return false;
+  const k=keyPlus(todayKey(),-off);
+  return k>=state.startDate;
+}
+function setOffset(off){
+  viewOffset=Math.max(0,off);
+  renderAll();
+  window.scrollTo(0,0);
+}
+el('yesterdayLink').addEventListener('click',()=>setOffset(1));
+el('ebPrev').addEventListener('click',()=>{if(canOffset(viewOffset+1))setOffset(viewOffset+1)});
+el('ebNext').addEventListener('click',()=>setOffset(viewOffset-1));
+el('ebToday').addEventListener('click',()=>setOffset(0));
 
 // ── рендер: коуч / светофор ──
 function renderCoach(){
+  if(viewOffset>0){el('redBlock').hidden=true;el('coachLine').hidden=true;return;}
   if(dayNumber()<1){
     el('redBlock').hidden=true;
     el('coachLine').hidden=false;
@@ -728,8 +783,10 @@ function renderColumn(newVert){
   el('bigColumnCaption').textContent=(count===0?0:shown.length)+' / '+SPINE+' · СТОЛБ '+(lvl+1)+' · ВСЕГО ПОЗВОНКОВ: '+count;
 }
 
-// ── «Сегодня»: hero-кольца + позвонок дня ──
+// ── «Сегодня»: hero-кольца + позвонок дня (работает и для прошлых дней) ──
 function fmtMS(s){s=Math.max(0,s);return Math.floor(s/60)+':'+('0'+(s%60)).slice(-2)}
+function normWt(w){if(w&&w.o&&!w.b&&w.s===undefined&&w.acc===undefined){w.s=w.o;w.acc=0}return w}
+function wtElapsed(w){return Math.floor(((w.acc||0)+(w.s?Date.now()-w.s:0))/1000)}
 function walkMinutes(rec){let s=0;if(rec&&rec.wt)for(const w of Object.values(rec.wt))if(w.m)s+=w.m;return s}
 function currentSlotIdx(){const h=logicalNow().getHours();return h<12?0:h<17?1:h<22?2:3}
 function medsDueToday(key){
@@ -750,7 +807,7 @@ function ringSVG(p1,p2){
   return s+'</svg>';
 }
 function renderHero(){
-  const key=todayKey();
+  const key=viewKey();
   const rec=state.days[key]||{done:[],meds:{},wt:{}};
   const total=state.program.length||1;
   const doneM=(rec.done||[]).length;
@@ -759,7 +816,7 @@ function renderHero(){
   el('ringBox').innerHTML=ringSVG(doneM/total,due.length?taken/due.length:null);
   const full=total>0&&doneM>=total;
   el('vdayIcon').className='vday '+(full?'full':doneM>0?'part':'ghost');
-  el('vdayText').textContent=full?'Насыщенный. Сегодня сделано всё.':doneM>0?'Бледный. До насыщенного: '+(total-doneM)+' из '+total+'.':'Появится после первого движения.';
+  el('vdayText').textContent=full?'Насыщенный. Сделано всё.':doneM>0?'Бледный. До насыщенного: '+(total-doneM)+' из '+total+'.':(viewOffset>0?'Этот день пока без движения.':'Появится после первого движения.');
   const verts=movementDays().length;
   const inCol=verts===0?0:((verts-1)%SPINE)+1;
   const mins=walkMinutes(rec);
@@ -768,7 +825,7 @@ function renderHero(){
   el('moveBadge').textContent=doneM+' / '+total;
 }
 
-// ── лекарства (отдельной секцией, по приёмам пищи) ──
+// ── лекарства ──
 function medBtn(m,meds,key){
   const on=!!meds[m.id];
   return '<button class="task med'+(on?' done':'')+'" data-med="'+esc(m.id)+'" aria-pressed="'+on+'">'+
@@ -784,10 +841,10 @@ function lyricaRow(meds,key){
     '<button data-ly="1" aria-label="больше"'+(v>=2?' disabled':'')+'>+</button></span></div>';
 }
 function renderMeds(){
-  const key=todayKey();
+  const key=viewKey();
   const rec=state.days[key];
   const meds=(rec&&rec.meds)||{};
-  const cur=currentSlotIdx();
+  const cur=viewOffset===0?currentSlotIdx():-1;
   let html='';let si=0;
   for(const slot of SLOTS){
     if(!slot.meds.length&&!slot.lyrica)continue;
@@ -797,12 +854,12 @@ function renderMeds(){
     if(rows)html+='<div class="tgroup'+(si===cur?' now':'')+'"><div class="tgroup-h">'+esc(slot.h)+(si===cur?' · СЕЙЧАС':'')+'</div>'+rows+'</div>';
     si++;
   }
-  el('medsList').innerHTML=html||'<p class="hint" style="margin:2px">Активных курсов на сегодня нет.</p>';
+  el('medsList').innerHTML=html||'<p class="hint" style="margin:2px">В этот день активных курсов нет.</p>';
 }
 el('medsList').addEventListener('click',e=>{
   const mbtn=e.target.closest('[data-med]');
   if(mbtn){
-    const rec=ensureDay(todayKey());
+    const rec=ensureDay(viewKey());
     rec.meds[mbtn.dataset.med]=!rec.meds[mbtn.dataset.med];
     rec.u=Date.now();
     save();renderMeds();renderHero();
@@ -810,7 +867,7 @@ el('medsList').addEventListener('click',e=>{
   }
   const ly=e.target.closest('[data-ly]');
   if(ly){
-    const rec=ensureDay(todayKey());
+    const rec=ensureDay(viewKey());
     const v=Math.min(2,Math.max(0,(+rec.meds.lyrica_night||0)+(+ly.dataset.ly)));
     rec.meds.lyrica_night=v;
     rec.u=Date.now();
@@ -818,62 +875,42 @@ el('medsList').addEventListener('click',e=>{
   }
 });
 
-// ── движение: прогулки с таймером «вышел/вернулся», коврик 7:00, разрывы ──
+// ── движение: таймер с паузой (только на сегодня); прошлые дни — простые галочки ──
 function renderMove(){
-  const key=todayKey();
+  const key=viewKey();
   const rec=state.days[key]||{done:[],wt:{}};
   const wt=rec.wt||{};
   el('moveList').innerHTML=state.program.map(p=>{
     const done=rec.done&&rec.done.includes(p.id);
-    const w=wt[p.id];
-    const running=!!(w&&w.o&&!w.b)&&!done;
-    let chip='',cls='';
-    if(p.id==='walk1'||p.id==='walk3'){
-      if(done)chip=(w&&w.m)?'✓ '+w.m+' мин':'✓';
-      else if(running){cls=' walking';chip='<span data-timer="'+p.id+'">'+fmtMS(Math.floor((Date.now()-w.o)/1000))+'</span>';}
-      else chip='▸ старт';
-    }else if(p.id==='mat'){
-      if(done)chip=(w&&w.m)?'✓ '+w.m+' мин':'✓';
-      else if(running){cls=' walking';chip='<span data-timer="mat">'+fmtMS(420-Math.floor((Date.now()-w.o)/1000))+'</span>';}
-      else chip='▸ 7:00';
-    }else{
-      chip=done?'✓':'';
+    const w=normWt(wt[p.id]);
+    const running=!!(w&&w.o&&!w.b)&&!done&&viewOffset===0;
+    const timed=(p.id==='walk1'||p.id==='walk3'||p.id==='mat')&&viewOffset===0;
+    if(running&&(p.id==='walk1'||p.id==='walk3')){
+      const paused=!w.s;
+      return '<div class="task move walking'+(paused?' pausedw':'')+'" data-run="'+esc(p.id)+'">'+
+        '<span class="ring">'+CHECK+'</span><span class="t">'+esc(p.title)+
+        '<span class="course-line">'+(paused?'пауза — магазин не считается':'идёт прогулка')+'</span></span>'+
+        '<span class="wctl"><span class="wtime" data-timer="'+esc(p.id)+'">'+fmtMS(wtElapsed(w))+'</span>'+
+        '<button data-wact="'+(paused?'resume':'pause')+'" data-wid="'+esc(p.id)+'">'+(paused?'▶':'⏸')+'</button>'+
+        '<button data-wact="fin" data-wid="'+esc(p.id)+'" class="fin">финиш</button></span></div>';
     }
-    return '<button class="task move'+(done?' done':'')+cls+'" data-id="'+esc(p.id)+'" aria-pressed="'+!!done+'">'+
+    if(running&&p.id==='mat'){
+      return '<div class="task move walking" data-run="mat">'+
+        '<span class="ring">'+CHECK+'</span><span class="t">'+esc(p.title)+
+        '<span class="course-line">идёт отсчёт — завершится сам</span></span>'+
+        '<span class="wctl"><span class="wtime" data-timer="mat">'+fmtMS(420-wtElapsed(w))+'</span>'+
+        '<button data-wact="fin" data-wid="mat" class="fin">стоп</button></span></div>';
+    }
+    let chip='';
+    if(timed&&!done)chip=p.id==='mat'?'▸ 7:00':'▸ старт';
+    else if(done)chip=(w&&w.m)?'✓ '+w.m+' мин':'✓';
+    return '<button class="task move'+(done?' done':'')+'" data-id="'+esc(p.id)+'" aria-pressed="'+!!done+'">'+
       '<span class="ring">'+CHECK+'</span><span class="t">'+esc(p.title)+'</span>'+
       '<span class="wchip mono">'+chip+'</span></button>';
   }).join('');
 }
 function renderTasks(){renderMeds();renderMove();renderHero();}
-el('moveList').addEventListener('click',e=>{
-  const btn=e.target.closest('.task[data-id]');if(!btn)return;
-  const id=btn.dataset.id;
-  const before=movementDays().length;
-  const rec=ensureDay(todayKey());
-  rec.total=state.program.length;
-  rec.wt=rec.wt||{};
-  const done=rec.done.includes(id);
-  const timed=(id==='walk1'||id==='walk3'||id==='mat');
-  if(!timed){
-    if(done)rec.done=rec.done.filter(x=>x!==id);else rec.done.push(id);
-  }else if(done){
-    if(!confirm('Сбросить отметку?'))return;
-    rec.done=rec.done.filter(x=>x!==id);
-    delete rec.wt[id];
-  }else{
-    const w=rec.wt[id];
-    if(!w||!w.o){
-      rec.wt[id]={o:Date.now()};
-      toast(id==='mat'?'Коврик пошёл — 7:00 на таймере':'Пошёл. Хорошей прогулки');
-    }else{
-      const sec=Math.floor((Date.now()-w.o)/1000);
-      if(id==='mat'&&sec<420&&!confirm('Завершить коврик раньше 7 минут?'))return;
-      w.b=Date.now();
-      w.m=(sec>=60&&sec<=4*3600)?Math.round(sec/60):null;
-      rec.done.push(id);
-    }
-  }
-  rec.u=Date.now();
+function afterMoveChange(before){
   save();
   const after=movementDays().length;
   if(after>before){
@@ -881,19 +918,66 @@ el('moveList').addEventListener('click',e=>{
     if(m)toast(m.n+' — '+m.t.toLowerCase());
   }
   renderMove();renderHero();renderColumn(after>before);renderMini();renderStats();renderCoach();
+}
+el('moveList').addEventListener('click',e=>{
+  // управление идущей прогулкой: пауза / продолжить / финиш
+  const wbtn=e.target.closest('[data-wact]');
+  if(wbtn){
+    const id=wbtn.dataset.wid;
+    const before=movementDays().length;
+    const rec=ensureDay(todayKey());
+    const w=normWt(rec.wt&&rec.wt[id]);
+    if(!w)return;
+    const act=wbtn.dataset.wact;
+    if(act==='pause'){w.acc=(w.acc||0)+(Date.now()-w.s);w.s=null;toast('Пауза. Вернёшься — жми ▶');}
+    else if(act==='resume'){w.s=Date.now();toast('Продолжаем');}
+    else if(act==='fin'){
+      const sec=wtElapsed(w);
+      if(id==='mat'&&sec<420&&!confirm('Завершить коврик раньше 7 минут?'))return;
+      w.b=Date.now();w.s=null;
+      w.m=(sec>=60&&sec<=4*3600)?Math.round(sec/60):null;
+      if(!rec.done.includes(id))rec.done.push(id);
+    }
+    rec.u=Date.now();
+    afterMoveChange(before);
+    return;
+  }
+  const btn=e.target.closest('.task[data-id]');if(!btn)return;
+  const id=btn.dataset.id;
+  const before=movementDays().length;
+  const rec=ensureDay(viewKey());
+  rec.total=state.program.length;
+  rec.wt=rec.wt||{};
+  const done=rec.done.includes(id);
+  const timed=(id==='walk1'||id==='walk3'||id==='mat')&&viewOffset===0;
+  if(!timed){
+    // прошлый день или нетаймерный пункт — простая галочка
+    if(done){rec.done=rec.done.filter(x=>x!==id);delete rec.wt[id];}
+    else rec.done.push(id);
+  }else if(done){
+    if(!confirm('Сбросить отметку?'))return;
+    rec.done=rec.done.filter(x=>x!==id);
+    delete rec.wt[id];
+  }else{
+    rec.wt[id]={o:Date.now(),s:Date.now(),acc:0};
+    toast(id==='mat'?'Коврик пошёл — 7:00 на таймере':'Пошёл. Хорошей прогулки');
+  }
+  rec.u=Date.now();
+  afterMoveChange(before);
 });
-// тикер: обновляет идущие таймеры, коврик завершается сам на 7:00
+// тикер: идущие таймеры сегодняшнего дня; коврик завершается сам на 7:00
 setInterval(()=>{
   const rec=state.days[todayKey()];
   if(!rec||!rec.wt)return;
   let finished=false;
   for(const [id,w] of Object.entries(rec.wt)){
+    normWt(w);
     if(!w.o||w.b||rec.done.includes(id))continue;
-    const sec=Math.floor((Date.now()-w.o)/1000);
+    const sec=wtElapsed(w);
     if(id==='mat'&&sec>=420){
-      w.b=Date.now();w.m=7;rec.done.push(id);rec.u=Date.now();finished=true;
+      w.b=Date.now();w.s=null;w.m=7;rec.done.push(id);rec.u=Date.now();finished=true;
       toast('Коврик готов — 7 минут');
-    }else{
+    }else if(w.s){
       const t=document.querySelector('[data-timer="'+id+'"]');
       if(t)t.textContent=fmtMS(id==='mat'?420-sec:sec);
     }
@@ -903,6 +987,7 @@ setInterval(()=>{
 
 // ── плашки «курс заканчивается» + блок «курс завершён» ──
 function renderMedNotices(){
+  if(viewOffset>0){el('medNotices').innerHTML='';el('finishedCourses').hidden=true;return;}
   const key=todayKey();
   let plaques='',fin='';
   if(dayNumber()>=1){
@@ -940,7 +1025,7 @@ function renderZones(){
 function renderZoneVerdict(){
   const v=el('zoneVerdict');
   if(pendingZone==null){v.textContent='';v.className='zone-verdict';return;}
-  const prev=lastZoneBefore(todayKey());
+  const prev=lastZoneBefore(viewKey());
   if(prev==null){v.textContent='Первая отметка — станет точкой сравнения на завтра.';v.className='zone-verdict mid';return;}
   if(pendingZone<prev){v.textContent='Выше, чем в прошлый раз ('+ZONES[prev].toLowerCase()+'). Боль уходит к пояснице — это хорошо.';v.className='zone-verdict good';return;}
   if(pendingZone>prev){v.textContent='Ниже, чем в прошлый раз ('+ZONES[prev].toLowerCase()+'). Это стоп-сигнал — после записи появится, что делать.';v.className='zone-verdict bad';return;}
@@ -953,8 +1038,8 @@ el('zoneList').addEventListener('click',e=>{
   renderZones();
 });
 function renderMeasure(){
-  const today=state.days[todayKey()];
-  const prev=prevRecorded(keyPlus(todayKey(),1),1)[0];
+  const today=state.days[viewKey()];
+  const prev=prevRecorded(keyPlus(viewKey(),1),1)[0];
   const src=(today&&today.recorded)?today:prev;
   el('painBack').value=src&&typeof src.painBack==='number'?src.painBack:5;
   el('painLeg').value=src&&typeof src.painLeg==='number'?src.painLeg:3;
@@ -968,12 +1053,12 @@ function renderMeasure(){
 el('painBack').addEventListener('input',()=>el('painBackOut').textContent=el('painBack').value);
 el('painLeg').addEventListener('input',()=>el('painLegOut').textContent=el('painLeg').value);
 el('recordBtn').addEventListener('click',()=>{
-  const rec=ensureDay(todayKey());
+  const rec=ensureDay(viewKey());
   rec.total=state.program.length;
   rec.painBack=+el('painBack').value;
   rec.painLeg=+el('painLeg').value;
   // направление выводим сами из зоны — пользователь ничего не сравнивает в голове
-  const prevZone=lastZoneBefore(todayKey());
+  const prevZone=lastZoneBefore(viewKey());
   rec.zone=pendingZone;
   rec.direction=(pendingZone==null||prevZone==null)?null:
     (pendingZone<prevZone?'up':pendingZone>prevZone?'down':'same');
@@ -1393,7 +1478,7 @@ el('nav').addEventListener('click',e=>{
 function renderAll(resetMeasure=true){
   renderHeader();renderCoach();renderColumn(false);renderTasks();
   if(resetMeasure)renderMeasure();else{
-    const today=state.days[todayKey()];
+    const today=state.days[viewKey()];
     el('recordBtn').textContent=(today&&today.recorded)?'Обновить запись':'Записать день';
   }
   renderMedNotices();renderMini();renderStats();renderProgram();
